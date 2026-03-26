@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #f7f7f7;
+    }
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    input, button {
+      padding: 10px;
+      margin: 6px 0;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    button {
+      cursor: pointer;
+    }
+    .hidden {
+      display: none;
+    }
+    .error {
+      color: #b91c1c;
+      margin-top: 10px;
+    }
+    .success {
+      color: #166534;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Admin Dashboard</h1>
+
+  <div id="loading" class="card">Checking access...</div>
+
+  <div id="adminPanel" class="hidden">
+    <div class="card">
+      <h2>Create Borrower</h2>
+      <input id="borrowerName" placeholder="Borrower name" />
+      <input id="borrowerEmail" placeholder="Borrower email" />
+      <button id="createBorrowerBtn">Create Borrower</button>
+      <div id="borrowerMsg"></div>
+    </div>
+
+    <div class="card">
+      <h2>Create Loan</h2>
+      <input id="loanBorrowerId" placeholder="Borrower ID" />
+      <input id="principal" type="number" placeholder="Principal" />
+      <input id="dueDate" type="date" />
+      <button id="createLoanBtn">Create Loan</button>
+      <div id="loanMsg"></div>
+    </div>
+
+    <div class="card">
+      <button id="signOutBtn">Sign Out</button>
+    </div>
+  </div>
+
+  <script>
+    const supabaseUrl = "https://ensuvkedfzepbpipivgp.supabase.co";
+    const supabaseKey = "sb_publishable_cQBGMqkJ_zaOoRj77-Hyvw_XzLH4ACW";
+    const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+    const loading = document.getElementById("loading");
+    const adminPanel = document.getElementById("adminPanel");
+
+    function setMessage(id, text, type = "error") {
+      const el = document.getElementById(id);
+      el.className = type;
+      el.textContent = text;
+    }
+
+    async function checkAdminAccess() {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+      if (userError || !user) {
+        alert("Please sign in first.");
+        window.location.href = "index.html";
+        return;
+      }
+
+      const { data: adminRow, error: adminError } = await supabase
+        .from("admins")
+        .select("id")
+        .eq("auth_user_id", user.id)
+        .maybeSingle();
+
+      if (adminError || !adminRow) {
+        alert("You are not authorized to access admin.");
+        await supabase.auth.signOut();
+        window.location.href = "index.html";
+        return;
+      }
+
+      loading.classList.add("hidden");
+      adminPanel.classList.remove("hidden");
+    }
+
+    async function createBorrower() {
+      const name = document.getElementById("borrowerName").value.trim();
+      const email = document.getElementById("borrowerEmail").value.trim();
+
+      if (!name || !email) {
+        setMessage("borrowerMsg", "Name and email are required.");
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("borrowers")
+        .insert([{ name, email }])
+        .select()
+        .single();
+
+      if (error) {
+        setMessage("borrowerMsg", error.message);
+        return;
+      }
+
+      setMessage(
+        "borrowerMsg",
+        `Borrower created. ID: ${data.id}`,
+        "success"
+      );
+    }
+
+    async function createLoan() {
+      const borrowerId = document.getElementById("loanBorrowerId").value.trim();
+      const principal = Number(document.getElementById("principal").value);
+      const dueDate = document.getElementById("dueDate").value;
+
+      if (!borrowerId || !principal || !dueDate) {
+        setMessage("loanMsg", "Borrower ID, principal, and due date are required.");
+        return;
+      }
+
+      const { error } = await supabase
+        .from("loans")
+        .insert([{
+          borrower_id: borrowerId,
+          principal: principal,
+          due_date: dueDate
+        }]);
+
+      if (error) {
+        setMessage("loanMsg", error.message);
+        return;
+      }
+
+      setMessage("loanMsg", "Loan created successfully.", "success");
+    }
+
+    async function signOut() {
+      await supabase.auth.signOut();
+      window.location.href = "index.html";
+    }
+
+    document.getElementById("createBorrowerBtn").addEventListener("click", createBorrower);
+    document.getElementById("createLoanBtn").addEventListener("click", createLoan);
+    document.getElementById("signOutBtn").addEventListener("click", signOut);
+
+    checkAdminAccess();
+  </script>
+</body>
+</html>
