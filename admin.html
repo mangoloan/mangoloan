@@ -209,7 +209,8 @@
         <pre id="notAdminUserId" style="margin:0 0 12px;padding:12px;background:#f3f4f6;border-radius:8px;font-size:13px;overflow-x:auto;word-break:break-all;"></pre>
         <p class="muted" style="margin:0 0 6px;">In Supabase → <strong>SQL Editor</strong>, run (table/column names must match your project):</p>
         <pre id="notAdminSql" style="margin:0 0 12px;padding:12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:12px;overflow-x:auto;white-space:pre-wrap;"></pre>
-        <p class="muted" style="margin:0;">If you already added a row and still see this, <strong>RLS</strong> may block reads: add a policy so authenticated users can <code>SELECT</code> from <code>admin_users</code> where <code>user_id = auth.uid()</code>.</p>
+        <button type="button" id="retryAdminCheckBtn" class="secondary small-btn" style="width:auto;margin-top:0;">I fixed it in Supabase — check again</button>
+        <p class="muted" style="margin:12px 0 0;">The app looks for <code>admin_users.user_id</code> = your Auth id. If your table uses <code>auth_user_id</code> instead, we try that too after you add the row.</p>
       </div>
     </div>
 
@@ -429,16 +430,33 @@
       if (box) box.classList.add("hidden");
     }
 
+    function buildAdminSetupSql(uid) {
+      return (
+        "-- Run in Supabase → SQL Editor (Dashboard). Safe to run if table already exists.\n\n" +
+        "create table if not exists public.admin_users (\n" +
+        "  user_id uuid primary key references auth.users (id) on delete cascade\n" +
+        ");\n\n" +
+        "alter table public.admin_users enable row level security;\n\n" +
+        "drop policy if exists \"admin_users_select_own\" on public.admin_users;\n" +
+        "create policy \"admin_users_select_own\"\n" +
+        "  on public.admin_users for select\n" +
+        "  to authenticated\n" +
+        "  using (user_id = auth.uid());\n\n" +
+        "insert into public.admin_users (user_id)\n" +
+        "values ('" +
+        uid +
+        "')\n" +
+        "on conflict (user_id) do nothing;\n"
+      );
+    }
+
     function showNotAdminHelp(user) {
       const box = document.getElementById("notAdminHelp");
       if (!box || !user) return;
       document.getElementById("notAdminEmail").textContent = user.email || "(no email)";
       const uid = user.id;
       document.getElementById("notAdminUserId").textContent = uid;
-      document.getElementById("notAdminSql").textContent =
-        "insert into admin_users (user_id)\nvalues ('" +
-        uid +
-        "');\n\n-- If your table uses a different column (e.g. id), open Table Editor → admin_users and match it.";
+      document.getElementById("notAdminSql").textContent = buildAdminSetupSql(uid);
       box.classList.remove("hidden");
     }
 
@@ -652,11 +670,29 @@
 
         showLoading("Verifying admin access...");
 
-        const { data: adminRow, error: adminError } = await supabase
+        let adminRow = null;
+        let adminError = null;
+
+        const byUserId = await supabase
           .from("admin_users")
           .select("*")
           .eq("user_id", user.id)
           .maybeSingle();
+
+        if (byUserId.error) {
+          adminError = byUserId.error;
+        } else if (byUserId.data) {
+          adminRow = byUserId.data;
+        } else {
+          const byAuthCol = await supabase
+            .from("admin_users")
+            .select("*")
+            .eq("auth_user_id", user.id)
+            .maybeSingle();
+          if (!byAuthCol.error && byAuthCol.data) {
+            adminRow = byAuthCol.data;
+          }
+        }
 
         if (adminError) {
           loadingCard.classList.remove("hidden");
@@ -889,6 +925,10 @@
     document.getElementById("loginForm").addEventListener("submit", (e) => {
       e.preventDefault();
       doLogin();
+    });
+
+    document.getElementById("retryAdminCheckBtn").addEventListener("click", () => {
+      checkAdminAccess();
     });
 
     document.getElementById("createBorrowerBtn").addEventListener("click", createBorrower);
