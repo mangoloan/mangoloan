@@ -497,6 +497,16 @@
   </div>
 
   <script>
+    (function redirectPasswordRecoveryToBorrower() {
+      try {
+        var params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+        if (params.get("type") !== "recovery") return;
+        var target = new URL("borrower.html", window.location.href);
+        target.hash = window.location.hash;
+        window.location.replace(target.href);
+      } catch (e) {}
+    })();
+
     const supabaseClient = window.supabase.createClient(
       "https://ensuvkedfzepbpipivgp.supabase.co",
       "sb_publishable_cQBGMqkJ_zaOoRj77-Hyvw_XzLH4ACW"

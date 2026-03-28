@@ -95,6 +95,14 @@
   </div>
 
   <script>
+    const recoveryFromEmailLink = (function () {
+      try {
+        return new URLSearchParams(window.location.hash.replace(/^#/, "")).get("type") === "recovery";
+      } catch (e) {
+        return false;
+      }
+    })();
+
     const supabaseClient = window.supabase.createClient(
       "https://ensuvkedfzepbpipivgp.supabase.co",
       "sb_publishable_cQBGMqkJ_zaOoRj77-Hyvw_XzLH4ACW"
@@ -191,8 +199,9 @@
         return;
       }
 
+      const redirectTo = new URL("borrower.html", window.location.href).href.split("#")[0];
       const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin + "/borrower.html"
+        redirectTo
       });
 
       setAuthMessage(error ? error.message : "Password reset email sent.");
@@ -347,6 +356,11 @@
     });
 
     supabaseClient.auth.getSession().then(({ data }) => {
+      if (recoveryFromEmailLink) {
+        showResetCard();
+        setResetMessage("Enter your new password below.");
+        return;
+      }
       if (data.session) {
         loadBorrowerDashboard();
       }
