@@ -185,14 +185,16 @@
 
     <div id="authCard" class="card hidden">
       <h2>Admin sign in</h2>
-      <p class="muted">Use the Supabase account that is listed in the <code>admin_users</code> table.</p>
-      <label for="loginEmail">Email</label>
-      <input id="loginEmail" type="email" autocomplete="username" placeholder="admin@example.com" />
-      <label for="loginPassword">Password</label>
-      <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Password" />
-      <div class="login-actions">
-        <button id="loginBtn" type="button">Sign In</button>
-      </div>
+      <p class="muted">Use the Supabase account that is listed in the <code>admin_users</code> table (<code>user_id</code> = your auth user UUID).</p>
+      <form id="loginForm" action="#" method="post">
+        <label for="loginEmail">Email</label>
+        <input id="loginEmail" type="email" autocomplete="username" placeholder="admin@example.com" />
+        <label for="loginPassword">Password</label>
+        <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Password" />
+        <div class="login-actions">
+          <button id="loginBtn" type="submit">Sign In</button>
+        </div>
+      </form>
       <div id="loginMsg" class="muted" style="margin-top:12px;"></div>
     </div>
 
@@ -203,6 +205,11 @@
     </div>
 
     <div id="adminPanel" class="hidden">
+      <div id="dataLoadBanner" class="card hidden" style="border:1px solid #fecaca;background:#fef2f2;">
+        <strong>Data load issue</strong>
+        <div id="dataLoadBannerText" class="muted" style="margin-top:8px;"></div>
+      </div>
+
       <div class="card">
         <h2>Admin session</h2>
         <div id="sessionInfo" class="status info">Loading session...</div>
@@ -255,6 +262,29 @@
 
         <button id="createLoanBtn" type="button">Create loan</button>
         <div id="loanMsg"></div>
+      </div>
+
+      <div class="card">
+        <h2>Record payment</h2>
+        <label for="addPaymentLoan">Loan</label>
+        <select id="addPaymentLoan">
+          <option value="">Select loan</option>
+        </select>
+        <label for="addPaymentAmount">Amount</label>
+        <input id="addPaymentAmount" type="number" step="0.01" min="0" placeholder="Amount" />
+        <label for="addPaymentDate">Date</label>
+        <input id="addPaymentDate" type="date" />
+        <label for="addPaymentMethod">Method</label>
+        <select id="addPaymentMethod">
+          <option value="Zelle">Zelle</option>
+          <option value="Cash">Cash</option>
+          <option value="Check">Check</option>
+          <option value="Other">Other</option>
+        </select>
+        <label for="addPaymentNotes">Notes</label>
+        <textarea id="addPaymentNotes" placeholder="Optional"></textarea>
+        <button id="addPaymentBtn" type="button">Add payment</button>
+        <div id="addPaymentMsg"></div>
       </div>
 
       <div class="card">
@@ -329,6 +359,18 @@
       payments: []
     };
 
+    function getLoanStats(loan) {
+      const paid = state.payments
+        .filter((p) => p.loan_id === loan.id)
+        .reduce((sum, p) => sum + Number(p.amount || 0), 0);
+      const balance = Number(loan.principal || 0) - paid;
+      return { ...loan, paid, balance };
+    }
+
+    function getLoansWithStats() {
+      return state.loans.map(getLoanStats);
+    }
+
     function todayStr() {
       return new Date().toISOString().slice(0, 10);
     }
@@ -363,6 +405,7 @@
     }
 
     function showLogin(message) {
+      setDataLoadError("");
       loadingCard.classList.add("hidden");
       adminPanel.classList.add("hidden");
       authCard.classList.remove("hidden");
@@ -375,6 +418,28 @@
       adminPanel.classList.add("hidden");
       loadingCard.classList.remove("hidden");
       showAccess(message || "Checking...", "info");
+    }
+
+    function setDataLoadError(msg) {
+      const banner = document.getElementById("dataLoadBanner");
+      const text = document.getElementById("dataLoadBannerText");
+      if (!msg) {
+        banner.classList.add("hidden");
+        text.textContent = "";
+        return;
+      }
+      banner.classList.remove("hidden");
+      text.textContent = msg;
+    }
+
+    async function resolveAuthUser() {
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) return { user: null, error: sessionError };
+      if (sessionData?.session?.user) {
+        return { user: sessionData.session.user, error: null };
+      }
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      return { user: userData?.user ?? null, error: userError };
     }
 
     async function loadTables() {
@@ -391,14 +456,17 @@
       const { data: payments, error: e3 } = await supabase
         .from("payments")
         .select("*")
-        .order("date", { ascending: false });
+        .order("created_at", { ascending: false });
 
       if (e1 || e2 || e3) {
         const err = e1 || e2 || e3;
+        const detail = err.message + (err.code ? ` (${err.code})` : "") + (err.details ? ` — ${err.details}` : "");
+        setDataLoadError(detail);
         setStatus("paymentMsg", "Could not load data: " + err.message, "error");
         return false;
       }
 
+      setDataLoadError("");
       state.borrowers = borrowers || [];
       state.loans = loans || [];
       state.payments = payments || [];
@@ -414,6 +482,18 @@
         state.borrowers
           .map((b) => `<option value="${b.id}">${escapeHtml(b.name)}</option>`)
           .join("");
+    }
+
+    function ensureSelectHasValue(selectEl, value) {
+      if (!value) return;
+      const exists = Array.from(selectEl.options).some((o) => o.value === value);
+      if (!exists) {
+        const opt = document.createElement("option");
+        opt.value = value;
+        opt.textContent = value;
+        selectEl.appendChild(opt);
+      }
+      selectEl.value = value;
     }
 
     function renderPaymentsUI() {
@@ -470,6 +550,19 @@
             return `<option value="${l.id}">${escapeHtml(label)}</option>`;
           })
           .join("");
+
+      const addLoanSel = document.getElementById("addPaymentLoan");
+      const openLoans = getLoansWithStats().filter((l) => l.balance > 0);
+      const addList = openLoans.length ? openLoans : getLoansWithStats();
+      addLoanSel.innerHTML =
+        '<option value="">Select loan</option>' +
+        addList
+          .map((l) => {
+            const b = state.borrowers.find((x) => x.id === l.borrower_id);
+            const label = `${b?.name || "Unknown"} — ${currency(l.balance)} balance`;
+            return `<option value="${l.id}">${escapeHtml(label)}</option>`;
+          })
+          .join("");
     }
 
     function loadPaymentIntoEditor(id) {
@@ -479,7 +572,10 @@
       document.getElementById("editPaymentLoan").value = payment.loan_id || "";
       document.getElementById("editPaymentAmount").value = payment.amount ?? "";
       document.getElementById("editPaymentDate").value = payment.date || "";
-      document.getElementById("editPaymentMethod").value = payment.method || "Zelle";
+      const methodSel = document.getElementById("editPaymentMethod");
+      const m = payment.method || "Zelle";
+      ensureSelectHasValue(methodSel, m);
+      methodSel.value = m;
       document.getElementById("editPaymentNotes").value = payment.notes || "";
       document.getElementById("paymentMsg").textContent = "";
       document.getElementById("paymentMsg").className = "muted";
@@ -493,6 +589,7 @@
       signOutBtn.classList.remove("hidden");
 
       document.getElementById("startDate").value = todayStr();
+      document.getElementById("addPaymentDate").value = todayStr();
 
       await loadTables();
     }
@@ -501,10 +598,7 @@
       try {
         showLoading("Checking login session...");
 
-        const {
-          data: { user },
-          error: userError
-        } = await supabase.auth.getUser();
+        const { user, error: userError } = await resolveAuthUser();
 
         if (userError) {
           showLogin("Auth error: " + userError.message);
@@ -685,6 +779,36 @@
       loadPaymentIntoEditor(id);
     }
 
+    async function addPayment() {
+      const loanId = document.getElementById("addPaymentLoan").value;
+      const amount = Number(document.getElementById("addPaymentAmount").value || 0);
+      const date = document.getElementById("addPaymentDate").value || todayStr();
+      const method = document.getElementById("addPaymentMethod").value;
+      const notes = document.getElementById("addPaymentNotes").value.trim();
+
+      if (!loanId || !amount || amount <= 0) {
+        setStatus("addPaymentMsg", "Select a loan and enter a valid amount.", "error");
+        return;
+      }
+
+      setStatus("addPaymentMsg", "Saving...", "info");
+
+      const { error } = await supabase.from("payments").insert([
+        { loan_id: loanId, amount, date, method, notes: notes || null }
+      ]);
+
+      if (error) {
+        setStatus("addPaymentMsg", error.message, "error");
+        return;
+      }
+
+      setStatus("addPaymentMsg", "Payment recorded.", "success");
+      document.getElementById("addPaymentAmount").value = "";
+      document.getElementById("addPaymentNotes").value = "";
+      document.getElementById("addPaymentDate").value = todayStr();
+      await loadTables();
+    }
+
     async function signOut() {
       await supabase.auth.signOut();
       state.borrowers = [];
@@ -695,7 +819,7 @@
       showLogin("");
     }
 
-    document.getElementById("loginBtn").addEventListener("click", async () => {
+    async function doLogin() {
       const email = document.getElementById("loginEmail").value.trim();
       const password = document.getElementById("loginPassword").value;
       document.getElementById("loginMsg").textContent = "";
@@ -712,11 +836,17 @@
       }
 
       await checkAdminAccess();
+    }
+
+    document.getElementById("loginForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      doLogin();
     });
 
     document.getElementById("createBorrowerBtn").addEventListener("click", createBorrower);
     document.getElementById("createLoanBtn").addEventListener("click", createLoan);
     document.getElementById("savePaymentBtn").addEventListener("click", savePayment);
+    document.getElementById("addPaymentBtn").addEventListener("click", addPayment);
     document.getElementById("refreshDataBtn").addEventListener("click", loadTables);
     document.getElementById("editPaymentSelect").addEventListener("change", (e) => {
       if (e.target.value) loadPaymentIntoEditor(e.target.value);
