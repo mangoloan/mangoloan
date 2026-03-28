@@ -185,7 +185,8 @@
 
     <div id="authCard" class="card hidden">
       <h2>Admin sign in</h2>
-      <p class="muted">Use the Supabase account that is listed in the <code>admin_users</code> table (<code>user_id</code> = your auth user UUID).</p>
+      <p class="muted">This page is for <strong>staff</strong> only. Borrower sign-in is on <a href="borrower.html">borrower.html</a>.</p>
+      <p class="muted">Your login must exist in Supabase Auth and your user id must be in the <code>admin_users</code> table (<code>user_id</code> = your auth UUID).</p>
       <form id="loginForm" action="#" method="post">
         <label for="loginEmail">Email</label>
         <input id="loginEmail" type="email" autocomplete="username" placeholder="admin@example.com" />
@@ -202,6 +203,14 @@
       <h2>Checking access...</h2>
       <div id="accessStatus" class="status info">Checking login session…</div>
       <div class="muted">If something is wrong, the status above explains it.</div>
+      <div id="notAdminHelp" class="hidden" style="margin-top:18px;padding-top:16px;border-top:1px solid #e5e7eb;">
+        <p style="margin:0 0 8px;font-weight:600;">Fix: add this account to <code>admin_users</code></p>
+        <p class="muted" style="margin:0 0 6px;">Signed in as <span id="notAdminEmail"></span>. Your Auth user id must appear in <code>admin_users.user_id</code>:</p>
+        <pre id="notAdminUserId" style="margin:0 0 12px;padding:12px;background:#f3f4f6;border-radius:8px;font-size:13px;overflow-x:auto;word-break:break-all;"></pre>
+        <p class="muted" style="margin:0 0 6px;">In Supabase → <strong>SQL Editor</strong>, run (table/column names must match your project):</p>
+        <pre id="notAdminSql" style="margin:0 0 12px;padding:12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:12px;overflow-x:auto;white-space:pre-wrap;"></pre>
+        <p class="muted" style="margin:0;">If you already added a row and still see this, <strong>RLS</strong> may block reads: add a policy so authenticated users can <code>SELECT</code> from <code>admin_users</code> where <code>user_id = auth.uid()</code>.</p>
+      </div>
     </div>
 
     <div id="adminPanel" class="hidden">
@@ -415,7 +424,26 @@
       accessStatus.textContent = text;
     }
 
+    function hideNotAdminHelp() {
+      const box = document.getElementById("notAdminHelp");
+      if (box) box.classList.add("hidden");
+    }
+
+    function showNotAdminHelp(user) {
+      const box = document.getElementById("notAdminHelp");
+      if (!box || !user) return;
+      document.getElementById("notAdminEmail").textContent = user.email || "(no email)";
+      const uid = user.id;
+      document.getElementById("notAdminUserId").textContent = uid;
+      document.getElementById("notAdminSql").textContent =
+        "insert into admin_users (user_id)\nvalues ('" +
+        uid +
+        "');\n\n-- If your table uses a different column (e.g. id), open Table Editor → admin_users and match it.";
+      box.classList.remove("hidden");
+    }
+
     function showLogin(message) {
+      hideNotAdminHelp();
       setDataLoadError("");
       loadingCard.classList.add("hidden");
       adminPanel.classList.add("hidden");
@@ -425,6 +453,7 @@
     }
 
     function showLoading(message) {
+      hideNotAdminHelp();
       authCard.classList.add("hidden");
       adminPanel.classList.add("hidden");
       loadingCard.classList.remove("hidden");
@@ -632,7 +661,13 @@
         if (adminError) {
           loadingCard.classList.remove("hidden");
           authCard.classList.add("hidden");
-          showAccess("Admins table error: " + adminError.message, "error");
+          showAccess(
+            "Could not read admin_users: " +
+              adminError.message +
+              "\n\nOften this is RLS (row level security). Your user id is below—use it in SQL and fix policies.",
+            "error"
+          );
+          showNotAdminHelp(user);
           signOutBtn.classList.remove("hidden");
           return;
         }
@@ -641,13 +676,15 @@
           loadingCard.classList.remove("hidden");
           authCard.classList.add("hidden");
           showAccess(
-            "This account is signed in but is not in admin_users. Add your auth user id to admin_users in Supabase, or sign out and use a different account.",
+            "Signed in, but this user is not in admin_users (or RLS hides the row). Use your user id below in Supabase.",
             "error"
           );
+          showNotAdminHelp(user);
           signOutBtn.classList.remove("hidden");
           return;
         }
 
+        hideNotAdminHelp();
         showAccess("Access granted.", "success");
         await afterAdminOk(user);
       } catch (err) {
