@@ -16,7 +16,7 @@
     }
 
     .wrap {
-      max-width: 900px;
+      max-width: 960px;
       margin: 0 auto;
       padding: 24px 16px 40px;
     }
@@ -29,6 +29,11 @@
     h2 {
       margin: 0 0 14px;
       font-size: 20px;
+    }
+
+    h3 {
+      margin: 18px 0 10px;
+      font-size: 16px;
     }
 
     .card {
@@ -45,16 +50,21 @@
       margin: 12px 0 6px;
     }
 
-    input, button {
+    input, button, select, textarea {
       width: 100%;
       padding: 12px;
       border-radius: 8px;
       font-size: 15px;
     }
 
-    input {
+    input, select, textarea {
       border: 1px solid #d1d5db;
       background: #fff;
+    }
+
+    textarea {
+      min-height: 72px;
+      resize: vertical;
     }
 
     button {
@@ -119,54 +129,184 @@
       width: auto;
       padding: 10px 14px;
     }
+
+    .row-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .row-actions button {
+      margin-top: 0;
+      padding: 8px 12px;
+      font-size: 13px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      margin-top: 12px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 10px 8px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    th {
+      color: #6b7280;
+      font-weight: 600;
+    }
+
+    .login-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .login-actions button {
+      width: auto;
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="topbar">
       <h1>Admin Dashboard</h1>
-      <button id="signOutBtn" class="secondary small-btn">Sign Out</button>
+      <button id="signOutBtn" class="secondary small-btn hidden">Sign Out</button>
+    </div>
+
+    <div id="authCard" class="card hidden">
+      <h2>Admin sign in</h2>
+      <p class="muted">Use the Supabase account that is listed in the <code>admin_users</code> table.</p>
+      <label for="loginEmail">Email</label>
+      <input id="loginEmail" type="email" autocomplete="username" placeholder="admin@example.com" />
+      <label for="loginPassword">Password</label>
+      <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Password" />
+      <div class="login-actions">
+        <button id="loginBtn" type="button">Sign In</button>
+      </div>
+      <div id="loginMsg" class="muted" style="margin-top:12px;"></div>
     </div>
 
     <div id="loadingCard" class="card">
       <h2>Checking access...</h2>
       <div id="accessStatus" class="status info">Starting admin check...</div>
-      <div class="muted">If this stays here, the status box should tell us exactly what is wrong.</div>
+      <div class="muted">If something is wrong, the status above explains it.</div>
     </div>
 
     <div id="adminPanel" class="hidden">
       <div class="card">
-        <h2>Admin Session</h2>
+        <h2>Admin session</h2>
         <div id="sessionInfo" class="status info">Loading session...</div>
       </div>
 
       <div class="card">
-        <h2>Create Borrower</h2>
+        <h2>Create borrower</h2>
 
-        <label for="borrowerName">Borrower Name</label>
-        <input id="borrowerName" type="text" placeholder="Enter borrower name" />
+        <label for="borrowerName">Name</label>
+        <input id="borrowerName" type="text" placeholder="Borrower name" />
 
-        <label for="borrowerEmail">Borrower Email</label>
-        <input id="borrowerEmail" type="email" placeholder="Enter borrower email" />
+        <label for="borrowerEmail">Email</label>
+        <input id="borrowerEmail" type="email" placeholder="Email (optional)" />
 
-        <button id="createBorrowerBtn">Create Borrower</button>
+        <label for="borrowerPhone">Phone</label>
+        <input id="borrowerPhone" type="text" placeholder="Phone (optional)" />
+
+        <label for="borrowerZelle">Zelle</label>
+        <input id="borrowerZelle" type="text" placeholder="Zelle id (optional)" />
+
+        <label for="borrowerNotes">Notes</label>
+        <textarea id="borrowerNotes" placeholder="Notes (optional)"></textarea>
+
+        <button id="createBorrowerBtn" type="button">Create borrower</button>
         <div id="borrowerMsg"></div>
       </div>
 
       <div class="card">
-        <h2>Create Loan</h2>
+        <h2>Create loan</h2>
 
-        <label for="loanBorrowerId">Borrower ID</label>
-        <input id="loanBorrowerId" type="text" placeholder="Paste borrower id" />
+        <label for="loanBorrowerSelect">Borrower</label>
+        <select id="loanBorrowerSelect">
+          <option value="">Select borrower</option>
+        </select>
 
         <label for="principal">Principal</label>
-        <input id="principal" type="number" step="0.01" placeholder="Enter principal amount" />
+        <input id="principal" type="number" step="0.01" min="0" placeholder="Principal amount" />
 
-        <label for="dueDate">Due Date</label>
+        <label for="loanRate">Annual rate (%)</label>
+        <input id="loanRate" type="number" step="0.01" min="0" placeholder="0 for simple split" />
+
+        <label for="startDate">Start date</label>
+        <input id="startDate" type="date" />
+
+        <label for="dueDate">Due date</label>
         <input id="dueDate" type="date" />
 
-        <button id="createLoanBtn">Create Loan</button>
+        <label for="loanNotes">Notes</label>
+        <textarea id="loanNotes" placeholder="Notes (optional)"></textarea>
+
+        <button id="createLoanBtn" type="button">Create loan</button>
         <div id="loanMsg"></div>
+      </div>
+
+      <div class="card">
+        <h2>Payments</h2>
+        <p class="muted">Edit recorded payments. Use Refresh after changes elsewhere.</p>
+        <button id="refreshDataBtn" type="button" class="secondary small-btn" style="width:auto;">Refresh list</button>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Borrower</th>
+                <th>Amount</th>
+                <th>Method</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="paymentsTableBody"></tbody>
+          </table>
+        </div>
+
+        <h3>Edit payment</h3>
+        <label for="editPaymentSelect">Payment</label>
+        <select id="editPaymentSelect">
+          <option value="">Select a payment</option>
+        </select>
+
+        <label for="editPaymentLoan">Loan</label>
+        <select id="editPaymentLoan">
+          <option value="">Select loan</option>
+        </select>
+
+        <label for="editPaymentAmount">Amount</label>
+        <input id="editPaymentAmount" type="number" step="0.01" min="0" />
+
+        <label for="editPaymentDate">Date</label>
+        <input id="editPaymentDate" type="date" />
+
+        <label for="editPaymentMethod">Method</label>
+        <select id="editPaymentMethod">
+          <option value="Zelle">Zelle</option>
+          <option value="Cash">Cash</option>
+          <option value="Check">Check</option>
+          <option value="Other">Other</option>
+        </select>
+
+        <label for="editPaymentNotes">Notes</label>
+        <textarea id="editPaymentNotes" placeholder="Notes"></textarea>
+
+        <button id="savePaymentBtn" type="button">Save payment</button>
+        <div id="paymentMsg"></div>
       </div>
     </div>
   </div>
@@ -178,11 +318,41 @@
 
     const loadingCard = document.getElementById("loadingCard");
     const adminPanel = document.getElementById("adminPanel");
+    const authCard = document.getElementById("authCard");
     const accessStatus = document.getElementById("accessStatus");
     const sessionInfo = document.getElementById("sessionInfo");
+    const signOutBtn = document.getElementById("signOutBtn");
+
+    const state = {
+      borrowers: [],
+      loans: [],
+      payments: []
+    };
+
+    function todayStr() {
+      return new Date().toISOString().slice(0, 10);
+    }
+
+    function currency(n) {
+      return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+        maximumFractionDigits: 2
+      }).format(Number(n || 0));
+    }
+
+    function escapeHtml(str) {
+      return String(str || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
 
     function setStatus(elId, text, type = "info") {
       const el = document.getElementById(elId);
+      if (!el) return;
       el.className = `status ${type}`;
       el.textContent = text;
     }
@@ -192,9 +362,144 @@
       accessStatus.textContent = text;
     }
 
+    function showLogin(message) {
+      loadingCard.classList.add("hidden");
+      adminPanel.classList.add("hidden");
+      authCard.classList.remove("hidden");
+      signOutBtn.classList.add("hidden");
+      document.getElementById("loginMsg").textContent = message || "";
+    }
+
+    function showLoading(message) {
+      authCard.classList.add("hidden");
+      adminPanel.classList.add("hidden");
+      loadingCard.classList.remove("hidden");
+      showAccess(message || "Checking...", "info");
+    }
+
+    async function loadTables() {
+      const { data: borrowers, error: e1 } = await supabase
+        .from("borrowers")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      const { data: loans, error: e2 } = await supabase
+        .from("loans")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      const { data: payments, error: e3 } = await supabase
+        .from("payments")
+        .select("*")
+        .order("date", { ascending: false });
+
+      if (e1 || e2 || e3) {
+        const err = e1 || e2 || e3;
+        setStatus("paymentMsg", "Could not load data: " + err.message, "error");
+        return false;
+      }
+
+      state.borrowers = borrowers || [];
+      state.loans = loans || [];
+      state.payments = payments || [];
+      renderBorrowerSelects();
+      renderPaymentsUI();
+      return true;
+    }
+
+    function renderBorrowerSelects() {
+      const loanSel = document.getElementById("loanBorrowerSelect");
+      loanSel.innerHTML =
+        '<option value="">Select borrower</option>' +
+        state.borrowers
+          .map((b) => `<option value="${b.id}">${escapeHtml(b.name)}</option>`)
+          .join("");
+    }
+
+    function renderPaymentsUI() {
+      const tbody = document.getElementById("paymentsTableBody");
+      const enriched = state.payments.map((p) => {
+        const loan = state.loans.find((l) => l.id === p.loan_id);
+        const borrower = state.borrowers.find((b) => b.id === loan?.borrower_id);
+        return { ...p, loan, borrower };
+      });
+
+      if (!enriched.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="muted">No payments yet</td></tr>';
+      } else {
+        tbody.innerHTML = enriched
+          .map(
+            (p) => `
+          <tr>
+            <td>${escapeHtml(p.date || "")}</td>
+            <td>${escapeHtml(p.borrower?.name || "—")}</td>
+            <td>${currency(p.amount)}</td>
+            <td>${escapeHtml(p.method || "")}</td>
+            <td>
+              <div class="row-actions">
+                <button type="button" class="secondary js-edit-pay" data-id="${p.id}">Edit</button>
+              </div>
+            </td>
+          </tr>
+        `
+          )
+          .join("");
+
+        tbody.querySelectorAll(".js-edit-pay").forEach((btn) => {
+          btn.addEventListener("click", () => loadPaymentIntoEditor(btn.dataset.id));
+        });
+      }
+
+      const paySel = document.getElementById("editPaymentSelect");
+      paySel.innerHTML =
+        '<option value="">Select a payment</option>' +
+        enriched
+          .map((p) => {
+            const label = `${p.borrower?.name || "Payment"} — ${p.date || ""} — ${currency(p.amount)}`;
+            return `<option value="${p.id}">${escapeHtml(label)}</option>`;
+          })
+          .join("");
+
+      const loanOpts = document.getElementById("editPaymentLoan");
+      loanOpts.innerHTML =
+        '<option value="">Select loan</option>' +
+        state.loans
+          .map((l) => {
+            const b = state.borrowers.find((x) => x.id === l.borrower_id);
+            const label = `${b?.name || "Loan"} — ${currency(l.principal)}`;
+            return `<option value="${l.id}">${escapeHtml(label)}</option>`;
+          })
+          .join("");
+    }
+
+    function loadPaymentIntoEditor(id) {
+      const payment = state.payments.find((x) => x.id === id);
+      if (!payment) return;
+      document.getElementById("editPaymentSelect").value = payment.id;
+      document.getElementById("editPaymentLoan").value = payment.loan_id || "";
+      document.getElementById("editPaymentAmount").value = payment.amount ?? "";
+      document.getElementById("editPaymentDate").value = payment.date || "";
+      document.getElementById("editPaymentMethod").value = payment.method || "Zelle";
+      document.getElementById("editPaymentNotes").value = payment.notes || "";
+      document.getElementById("paymentMsg").textContent = "";
+      document.getElementById("paymentMsg").className = "muted";
+    }
+
+    async function afterAdminOk(user) {
+      sessionInfo.textContent = `Logged in as: ${user.email || "(no email)"}\nUser ID: ${user.id}`;
+      loadingCard.classList.add("hidden");
+      authCard.classList.add("hidden");
+      adminPanel.classList.remove("hidden");
+      signOutBtn.classList.remove("hidden");
+
+      document.getElementById("startDate").value = todayStr();
+
+      await loadTables();
+    }
+
     async function checkAdminAccess() {
       try {
-        showAccess("Checking login session...", "info");
+        showLoading("Checking login session...");
 
         const {
           data: { user },
@@ -202,18 +507,16 @@
         } = await supabase.auth.getUser();
 
         if (userError) {
-          showAccess("Auth error: " + userError.message, "error");
+          showLogin("Auth error: " + userError.message);
           return;
         }
 
         if (!user) {
-          showAccess("No user logged in. Sign in on index.html first, then come back to admin.html.", "error");
+          showLogin("Sign in with your admin account.");
           return;
         }
 
-        sessionInfo.textContent = `Logged in as: ${user.email || "(no email)"}\nUser ID: ${user.id}`;
-
-        showAccess("User found. Checking admins table...", "info");
+        showLoading("Verifying admin access...");
 
         const { data: adminRow, error: adminError } = await supabase
           .from("admin_users")
@@ -222,29 +525,42 @@
           .maybeSingle();
 
         if (adminError) {
+          loadingCard.classList.remove("hidden");
+          authCard.classList.add("hidden");
           showAccess("Admins table error: " + adminError.message, "error");
+          signOutBtn.classList.remove("hidden");
           return;
         }
 
         if (!adminRow) {
-          showAccess("Logged in, but this user is not in the admins table.", "error");
+          loadingCard.classList.remove("hidden");
+          authCard.classList.add("hidden");
+          showAccess(
+            "This account is signed in but is not in admin_users. Add your auth user id to admin_users in Supabase, or sign out and use a different account.",
+            "error"
+          );
+          signOutBtn.classList.remove("hidden");
           return;
         }
 
-        showAccess("Admin verified. Access granted.", "success");
-        loadingCard.classList.add("hidden");
-        adminPanel.classList.remove("hidden");
+        showAccess("Access granted.", "success");
+        await afterAdminOk(user);
       } catch (err) {
         showAccess("Unexpected error: " + err.message, "error");
+        loadingCard.classList.remove("hidden");
+        signOutBtn.classList.remove("hidden");
       }
     }
 
     async function createBorrower() {
       const name = document.getElementById("borrowerName").value.trim();
       const email = document.getElementById("borrowerEmail").value.trim();
+      const phone = document.getElementById("borrowerPhone").value.trim();
+      const zelle = document.getElementById("borrowerZelle").value.trim();
+      const notes = document.getElementById("borrowerNotes").value.trim();
 
-      if (!name || !email) {
-        setStatus("borrowerMsg", "Name and email are required.", "error");
+      if (!name) {
+        setStatus("borrowerMsg", "Name is required.", "error");
         return;
       }
 
@@ -252,7 +568,7 @@
 
       const { data, error } = await supabase
         .from("borrowers")
-        .insert([{ name, email }])
+        .insert([{ name, email: email || null, phone: phone || null, zelle: zelle || null, notes: notes || null }])
         .select()
         .single();
 
@@ -263,45 +579,57 @@
 
       setStatus(
         "borrowerMsg",
-        `Borrower created successfully.\nID: ${data.id}\nName: ${data.name}\nEmail: ${data.email}`,
+        `Borrower created.\nID: ${data.id}\nName: ${data.name}`,
         "success"
       );
 
       document.getElementById("borrowerName").value = "";
       document.getElementById("borrowerEmail").value = "";
-      document.getElementById("loanBorrowerId").value = data.id;
+      document.getElementById("borrowerPhone").value = "";
+      document.getElementById("borrowerZelle").value = "";
+      document.getElementById("borrowerNotes").value = "";
+      document.getElementById("loanBorrowerSelect").value = data.id;
+
+      await loadTables();
     }
 
     async function createLoan() {
-      const borrowerId = document.getElementById("loanBorrowerId").value.trim();
+      const borrowerId = document.getElementById("loanBorrowerSelect").value.trim();
       const principalValue = document.getElementById("principal").value.trim();
-      const dueDate = document.getElementById("dueDate").value;
+      const rateVal = document.getElementById("loanRate").value.trim();
+      const startDate = document.getElementById("startDate").value || null;
+      const dueDate = document.getElementById("dueDate").value || null;
+      const notes = document.getElementById("loanNotes").value.trim();
 
-      if (!borrowerId || !principalValue || !dueDate) {
-        setStatus("loanMsg", "Borrower ID, principal, and due date are required.", "error");
+      if (!borrowerId || !principalValue) {
+        setStatus("loanMsg", "Borrower and principal are required.", "error");
         return;
       }
 
       const principal = Number(principalValue);
-
       if (Number.isNaN(principal) || principal <= 0) {
-        setStatus("loanMsg", "Principal must be a valid number greater than 0.", "error");
+        setStatus("loanMsg", "Principal must be a number greater than 0.", "error");
+        return;
+      }
+
+      const rate = Number(rateVal || 0);
+      if (Number.isNaN(rate) || rate < 0) {
+        setStatus("loanMsg", "Rate must be zero or positive.", "error");
         return;
       }
 
       setStatus("loanMsg", "Creating loan...", "info");
 
-      const { data, error } = await supabase
-        .from("loans")
-        .insert([
-          {
-            borrower_id: borrowerId,
-            principal: principal,
-            due_date: dueDate
-          }
-        ])
-        .select()
-        .single();
+      const payload = {
+        borrower_id: borrowerId,
+        principal,
+        rate,
+        start_date: startDate,
+        due_date: dueDate,
+        notes: notes || null
+      };
+
+      const { data, error } = await supabase.from("loans").insert([payload]).select().single();
 
       if (error) {
         setStatus("loanMsg", error.message, "error");
@@ -310,22 +638,97 @@
 
       setStatus(
         "loanMsg",
-        `Loan created successfully.\nLoan ID: ${data.id}\nBorrower ID: ${data.borrower_id}\nPrincipal: ${data.principal}\nDue Date: ${data.due_date}`,
+        `Loan created.\nID: ${data.id}\nPrincipal: ${currency(data.principal)}`,
         "success"
       );
 
       document.getElementById("principal").value = "";
+      document.getElementById("loanRate").value = "";
+      document.getElementById("startDate").value = todayStr();
       document.getElementById("dueDate").value = "";
+      document.getElementById("loanNotes").value = "";
+
+      await loadTables();
+    }
+
+    async function savePayment() {
+      const id = document.getElementById("editPaymentSelect").value;
+      if (!id) {
+        setStatus("paymentMsg", "Select a payment to save.", "error");
+        return;
+      }
+
+      const payload = {
+        loan_id: document.getElementById("editPaymentLoan").value,
+        amount: Number(document.getElementById("editPaymentAmount").value || 0),
+        date: document.getElementById("editPaymentDate").value,
+        method: document.getElementById("editPaymentMethod").value,
+        notes: document.getElementById("editPaymentNotes").value.trim()
+      };
+
+      if (!payload.loan_id) {
+        setStatus("paymentMsg", "Loan is required.", "error");
+        return;
+      }
+
+      setStatus("paymentMsg", "Saving...", "info");
+
+      const { error } = await supabase.from("payments").update(payload).eq("id", id);
+
+      if (error) {
+        setStatus("paymentMsg", error.message, "error");
+        return;
+      }
+
+      setStatus("paymentMsg", "Payment updated.", "success");
+      await loadTables();
+      loadPaymentIntoEditor(id);
     }
 
     async function signOut() {
       await supabase.auth.signOut();
-      window.location.href = "index.html";
+      state.borrowers = [];
+      state.loans = [];
+      state.payments = [];
+      adminPanel.classList.add("hidden");
+      signOutBtn.classList.add("hidden");
+      showLogin("");
     }
+
+    document.getElementById("loginBtn").addEventListener("click", async () => {
+      const email = document.getElementById("loginEmail").value.trim();
+      const password = document.getElementById("loginPassword").value;
+      document.getElementById("loginMsg").textContent = "";
+
+      if (!email || !password) {
+        document.getElementById("loginMsg").textContent = "Enter email and password.";
+        return;
+      }
+
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        document.getElementById("loginMsg").textContent = error.message;
+        return;
+      }
+
+      await checkAdminAccess();
+    });
 
     document.getElementById("createBorrowerBtn").addEventListener("click", createBorrower);
     document.getElementById("createLoanBtn").addEventListener("click", createLoan);
-    document.getElementById("signOutBtn").addEventListener("click", signOut);
+    document.getElementById("savePaymentBtn").addEventListener("click", savePayment);
+    document.getElementById("refreshDataBtn").addEventListener("click", loadTables);
+    document.getElementById("editPaymentSelect").addEventListener("change", (e) => {
+      if (e.target.value) loadPaymentIntoEditor(e.target.value);
+    });
+
+    signOutBtn.addEventListener("click", signOut);
+
+    supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") {
+        showLogin("");
+      }
+    });
 
     checkAdminAccess();
   </script>
