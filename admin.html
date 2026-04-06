@@ -590,6 +590,7 @@
 
     var staffPasswordRecoveryActive = false;
     var staffDashboardAllowedUserId = null;
+    var loadAllDataGeneration = 0;
 
     function clearStaffDashboardAuth() {
       staffDashboardAllowedUserId = null;
@@ -646,8 +647,8 @@
       }
     }
 
-    async function userIsStaffAdmin(userId) {
-      if (!userId) return false;
+    async function resolveStaffAdminStatus(userId) {
+      if (!userId) return { allowed: false, verifyError: null };
 
       var byUserId = await supabaseClient
         .from("admin_users")
@@ -656,9 +657,14 @@
         .maybeSingle();
       if (byUserId.error) {
         console.warn("admin_users check:", byUserId.error.message || byUserId.error);
-        return false;
+        return {
+          allowed: false,
+          verifyError:
+            (byUserId.error.message || "Could not read admin_users.") +
+            " If you are staff, confirm RLS allows SELECT on your row (e.g. admin_users_self_read in supabase/rls_policies_admin.sql)."
+        };
       }
-      if (byUserId.data) return true;
+      if (byUserId.data) return { allowed: true, verifyError: null };
 
       var byAuthCol = await supabaseClient
         .from("admin_users")
@@ -667,19 +673,23 @@
         .maybeSingle();
       if (byAuthCol.error) {
         var low = String(byAuthCol.error.message || byAuthCol.error.details || "").toLowerCase();
-        if (low.indexOf("column") !== -1) return false;
+        if (low.indexOf("column") !== -1) return { allowed: false, verifyError: null };
         console.warn("admin_users check:", byAuthCol.error.message || byAuthCol.error);
-        return false;
+        return { allowed: false, verifyError: byAuthCol.error.message || String(byAuthCol.error) };
       }
-      return !!byAuthCol.data;
+      return { allowed: !!byAuthCol.data, verifyError: null };
     }
 
-    async function assertCanUseStaffDashboard(userId) {
-      if (!userId) return false;
-      if (staffDashboardAllowedUserId === userId) return true;
-      var ok = await userIsStaffAdmin(userId);
-      if (ok) staffDashboardAllowedUserId = userId;
-      return ok;
+    async function checkStaffDashboardAccess(userId) {
+      if (!userId) return { ok: false, notInTable: true };
+      if (staffDashboardAllowedUserId === userId) return { ok: true };
+      var status = await resolveStaffAdminStatus(userId);
+      if (status.verifyError) return { ok: false, verifyError: status.verifyError };
+      if (status.allowed) {
+        staffDashboardAllowedUserId = userId;
+        return { ok: true };
+      }
+      return { ok: false, notInTable: true };
     }
 
     function stripOAuthCodeFromUrl() {
@@ -724,8 +734,17 @@
         }
       }
       if (!user) {
-        const { data: sessWrap } = await supabaseClient.auth.getSession();
-        user = sessWrap.session && sessWrap.session.user ? sessWrap.session.user : null;
+        try {
+          var sessWrap = await withTimeout(
+            supabaseClient.auth.getSession(),
+            15000,
+            "getSession timed out. Check your network."
+          );
+          user = sessWrap.data.session && sessWrap.data.session.user ? sessWrap.data.session.user : null;
+        } catch (eSess) {
+          console.warn(eSess);
+          user = null;
+        }
       }
       if (!user) {
         clearStaffDashboardAuth();
@@ -733,13 +752,21 @@
         showStaffAuthGate("");
         return;
       }
-      if (!(await assertCanUseStaffDashboard(user.id))) {
+      var access = await checkStaffDashboardAccess(user.id);
+      if (!access.ok) {
         clearStaffDashboardAuth();
         hideStaffAppShell();
-        showStaffAuthGate(
-          "You are signed in, but this account is not in admin_users. The staff dashboard is only for admin accounts. Sign out and sign in with a staff account, or use the borrower portal. In Supabase: Table Editor → admin_users → add a row with user_id = your Auth user UUID.",
-          { showSignOut: true }
-        );
+        if (access.verifyError) {
+          showStaffAuthGate(
+            "Could not verify staff access: " + access.verifyError,
+            { showSignOut: true }
+          );
+        } else {
+          showStaffAuthGate(
+            "You are signed in, but this account is not in admin_users. The staff dashboard is only for admin accounts. Sign out and sign in with a staff account, or use the borrower portal. In Supabase: Table Editor → admin_users → add a row with user_id = your Auth user UUID.",
+            { showSignOut: true }
+          );
+        }
         return;
       }
       showStaffApp();
@@ -934,14 +961,23 @@
     }
 
     async function loadAllData() {
+      var myGen = ++loadAllDataGeneration;
       var uid = null;
       const { data: userData, error: gateUserErr } = await supabaseClient.auth.getUser();
       if (userData && userData.user) {
         uid = userData.user.id;
       } else {
-        const { data: sessWrap } = await supabaseClient.auth.getSession();
-        if (sessWrap.session && sessWrap.session.user) {
-          uid = sessWrap.session.user.id;
+        try {
+          var sessWrap2 = await withTimeout(
+            supabaseClient.auth.getSession(),
+            15000,
+            "getSession timed out."
+          );
+          if (sessWrap2.data.session && sessWrap2.data.session.user) {
+            uid = sessWrap2.data.session.user.id;
+          }
+        } catch (eS2) {
+          console.warn(eS2);
         }
       }
       if (!uid) {
@@ -953,12 +989,17 @@
         );
         return;
       }
-      if (!(await assertCanUseStaffDashboard(uid))) {
+      var access2 = await checkStaffDashboardAccess(uid);
+      if (!access2.ok) {
         hideStaffAppShell();
-        showStaffAuthGate(
-          "You are signed in, but this account is not in admin_users. The staff dashboard is only for admin accounts. Sign out and sign in with a staff account, or use the borrower portal. In Supabase: Table Editor → admin_users → add a row with user_id = your Auth user UUID.",
-          { showSignOut: true }
-        );
+        if (access2.verifyError) {
+          showStaffAuthGate("Could not verify staff access: " + access2.verifyError, { showSignOut: true });
+        } else {
+          showStaffAuthGate(
+            "You are signed in, but this account is not in admin_users. The staff dashboard is only for admin accounts. Sign out and sign in with a staff account, or use the borrower portal. In Supabase: Table Editor → admin_users → add a row with user_id = your Auth user UUID.",
+            { showSignOut: true }
+          );
+        }
         return;
       }
 
@@ -989,6 +1030,8 @@
         return;
       }
 
+      if (myGen !== loadAllDataGeneration) return;
+
       state.borrowers = borrowers || [];
       state.loans = loans || [];
       state.payments = payments || [];
@@ -999,7 +1042,7 @@
       const loans = getLoansWithStats();
       const totalLoaned = state.loans.reduce((sum, l) => sum + Number(l.principal || 0), 0);
       const totalCollected = state.payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
-      const outstanding = totalLoaned - totalCollected;
+      const outstanding = Math.max(0, totalLoaned - totalCollected);
       const activeLoans = loans.filter((l) => l.balance > 0).length;
       const overdueLoans = loans.filter((l) => l.isLate).length;
 
@@ -1577,19 +1620,37 @@
         const parsed = JSON.parse(text);
 
         if (Array.isArray(parsed.borrowers)) {
+          var importOk = 0;
+          var importFail = [];
           for (const b of parsed.borrowers) {
-            await supabaseClient.from("borrowers").insert([{
+            const { error: insErr } = await supabaseClient.from("borrowers").insert([{
               name: b.name || "",
               email: b.email || "",
               phone: b.phone || "",
               zelle: b.zelle || "",
               notes: b.notes || ""
             }]);
+            if (insErr) {
+              importFail.push((b.name || b.email || "row") + ": " + (insErr.message || insErr.code || "error"));
+            } else {
+              importOk += 1;
+            }
           }
+          await loadAllData();
+          var msg =
+            "Import: " +
+            importOk +
+            " borrower(s) added." +
+            (importFail.length
+              ? " Failed (" + importFail.length + "): " + importFail.slice(0, 3).join("; ") +
+                (importFail.length > 3 ? "…" : "")
+              : "") +
+            " Loans/payments from exports were not imported automatically.";
+          showMessage(msg);
+        } else {
+          await loadAllData();
+          showMessage("Import finished. No borrowers array in file. Loans and payments were not imported automatically.");
         }
-
-        await loadAllData();
-        showMessage("Import finished. Loans and payments from old exports were not imported automatically.");
       } catch (e) {
         console.error(e);
         showMessage("Could not import that file.");
@@ -1679,7 +1740,11 @@
       } finally {
         signInBtn.disabled = false;
         var gateEl = document.getElementById("authGate");
-        if (gateEl && !gateEl.classList.contains("hidden") && msg.textContent === "Signing in…") {
+        if (
+          gateEl &&
+          !gateEl.classList.contains("hidden") &&
+          (msg.textContent === "Signing in…" || msg.textContent === "Checking staff access…")
+        ) {
           msg.textContent =
             "Sign-in stalled. Use http:// not file://, try another browser/network, and check F12 → Console for errors.";
         }
