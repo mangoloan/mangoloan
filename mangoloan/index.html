@@ -1,0 +1,1234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Micro Loan Tracker</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --accent: #0f172a;
+      --soft: #f1f5f9;
+      --danger: #b91c1c;
+      --danger-bg: #fee2e2;
+      --ok: #166534;
+      --ok-bg: #dcfce7;
+    }
+
+    * { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      padding-bottom: 40px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    h1 { margin: 0 0 6px; font-size: 30px; line-height: 1.1; }
+    h3 { margin: 0 0 14px; font-size: 20px; }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 14px;
+      max-width: 640px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    button, .file-label {
+      border: 1px solid var(--line);
+      background: white;
+      color: var(--text);
+      border-radius: 14px;
+      padding: 12px 14px;
+      min-height: 44px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    button.primary {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+
+    button:hover, .file-label:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+    }
+
+    .danger-link {
+      color: var(--danger);
+      background: transparent;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      min-height: auto;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 18px;
+      box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+    }
+
+    .stat-label {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      line-height: 1.1;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+      position: sticky;
+      top: 0;
+      background: var(--bg);
+      z-index: 20;
+      padding: 6px 0 12px;
+    }
+
+    .tab-btn.active {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .toolbar {
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px 14px;
+      min-height: 44px;
+      font-size: 16px;
+      background: white;
+      color: var(--text);
+    }
+
+    textarea { min-height: 108px; resize: vertical; }
+    .search { max-width: 360px; }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .field { margin-bottom: 12px; }
+    .field label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      min-width: 760px;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 14px 12px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+      font-size: 14px;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      position: sticky;
+      top: 0;
+      background: white;
+    }
+
+    .badge {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .badge-paid { background: var(--ok-bg); color: var(--ok); }
+    .badge-active { background: var(--soft); color: var(--text); }
+    .badge-overdue { background: var(--danger-bg); color: var(--danger); }
+
+    .borrower-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .muted { color: var(--muted); }
+    .small { font-size: 12px; }
+    .empty { color: var(--muted); padding: 18px 0; }
+    .hidden { display: none; }
+
+    .message {
+      margin-bottom: 16px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid #bfdbfe;
+      background: #eff6ff;
+      color: #1e3a8a;
+      font-size: 14px;
+    }
+
+    .row-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    @media (max-width: 1024px) {
+      .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .grid-3, .borrower-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 640px) {
+      .container { padding: 14px; padding-bottom: 28px; }
+      h1 { font-size: 26px; }
+      .stats { grid-template-columns: 1fr; }
+      .actions { width: 100%; }
+      .actions > * { flex: 1 1 calc(50% - 8px); }
+      .tabs {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        padding-bottom: 10px;
+      }
+      .tab-btn { white-space: nowrap; }
+      .search { max-width: 100%; }
+      .toolbar > * { width: 100%; max-width: 100% !important; }
+      .card { padding: 16px; border-radius: 18px; }
+      th, td { padding: 12px 10px; }
+      table { min-width: 700px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="topbar">
+      <div>
+        <h1>Micro Loan Tracker</h1>
+        <div class="subtitle">Track borrowers, loans, payments, balances, receipts, and schedules. Data is saved in Supabase.</div>
+      </div>
+      <div class="actions">
+        <a href="admin.html" class="file-label" style="text-decoration:none;">Admin</a>
+        <a href="borrower.html" class="file-label" style="text-decoration:none;">Borrower portal</a>
+        <label class="file-label" for="importFile">Import Data</label>
+        <input id="importFile" type="file" accept="application/json" class="hidden" />
+        <button id="exportBtn">Export Data</button>
+      </div>
+    </div>
+
+    <div id="messageBox" class="message hidden"></div>
+
+    <div id="receiptCard" class="card hidden" style="margin-bottom:16px;">
+      <h3>Payment Receipt Email</h3>
+      <div class="field"><label>To</label><input id="receiptTo" placeholder="borrower@email.com" /></div>
+      <div class="field"><label>Subject</label><input id="receiptSubject" /></div>
+      <div class="field"><label>Email Body</label><textarea id="receiptBody" style="min-height:220px;"></textarea></div>
+      <div class="actions">
+        <button id="copyReceiptBtn">Copy Email</button>
+        <button id="openReceiptBtn" class="primary">Open Email Draft</button>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="card"><div class="stat-label">Total Loaned</div><div class="stat-value" id="statLoaned">$0.00</div></div>
+      <div class="card"><div class="stat-label">Collected</div><div class="stat-value" id="statCollected">$0.00</div></div>
+      <div class="card"><div class="stat-label">Outstanding</div><div class="stat-value" id="statOutstanding">$0.00</div></div>
+      <div class="card"><div class="stat-label">Active Loans</div><div class="stat-value" id="statActive">0</div></div>
+      <div class="card"><div class="stat-label">Overdue</div><div class="stat-value" id="statOverdue">0</div></div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="loans">Loans</button>
+      <button class="tab-btn" data-tab="borrowers">Borrowers</button>
+      <button class="tab-btn" data-tab="payments">Payments</button>
+      <button class="tab-btn" data-tab="edit">Edit</button>
+      <button class="tab-btn" data-tab="add">Add New</button>
+    </div>
+
+    <section id="tab-loans" class="tab-panel active">
+      <div class="card toolbar">
+        <input id="searchInput" class="search" placeholder="Search borrower, phone, or Zelle" />
+      </div>
+      <div class="card table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Borrower</th>
+              <th>Principal</th>
+              <th>Paid</th>
+              <th>Balance</th>
+              <th>Due</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="loansTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="tab-borrowers" class="tab-panel">
+      <div class="card">
+        <div id="borrowersGrid" class="borrower-grid"></div>
+      </div>
+    </section>
+
+    <section id="tab-payments" class="tab-panel">
+      <div class="card toolbar">
+        <input id="paymentSearchInput" class="search" placeholder="Filter borrower, method, notes, or date" />
+        <select id="paymentSortSelect" style="max-width:220px;">
+          <option value="newest">Newest first</option>
+          <option value="oldest">Oldest first</option>
+        </select>
+      </div>
+      <div class="card table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Borrower</th>
+              <th>Loan</th>
+              <th>Method</th>
+              <th>Amount</th>
+              <th>Running Balance</th>
+              <th>Notes</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="paymentsTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="tab-edit" class="tab-panel">
+      <div class="grid-3">
+        <div class="card">
+          <h3>Edit Borrower</h3>
+          <div class="field"><label>Select Borrower</label><select id="editBorrowerSelect"></select></div>
+          <div class="field"><label>Name</label><input id="editBorrowerName" /></div>
+          <div class="field"><label>Email</label><input id="editBorrowerEmail" /></div>
+          <div class="field"><label>Phone</label><input id="editBorrowerPhone" /></div>
+          <div class="field"><label>Zelle</label><input id="editBorrowerZelle" /></div>
+          <div class="field"><label>Notes</label><textarea id="editBorrowerNotes"></textarea></div>
+          <button id="saveBorrowerEditBtn" class="primary">Save Borrower</button>
+        </div>
+
+        <div class="card">
+          <h3>Edit Loan</h3>
+          <div class="field"><label>Select Loan</label><select id="editLoanSelect"></select></div>
+          <div class="field"><label>Borrower</label><select id="editLoanBorrower"></select></div>
+          <div class="field"><label>Principal</label><input id="editLoanPrincipal" type="number" step="0.01" /></div>
+          <div class="field"><label>Interest Rate %</label><input id="editLoanRate" type="number" step="0.01" /></div>
+          <div class="field"><label>Start Date</label><input id="editLoanStartDate" type="date" /></div>
+          <div class="field"><label>Due Date</label><input id="editLoanDueDate" type="date" /></div>
+          <div class="field"><label>Notes</label><textarea id="editLoanNotes"></textarea></div>
+          <button id="saveLoanEditBtn" class="primary">Save Loan</button>
+        </div>
+
+        <div class="card">
+          <h3>Edit Payment</h3>
+          <div class="field"><label>Select Payment</label><select id="editPaymentSelect"></select></div>
+          <div class="field"><label>Loan</label><select id="editPaymentLoan"></select></div>
+          <div class="field"><label>Amount</label><input id="editPaymentAmount" type="number" step="0.01" /></div>
+          <div class="field"><label>Date</label><input id="editPaymentDate" type="date" /></div>
+          <div class="field"><label>Method</label>
+            <select id="editPaymentMethod">
+              <option>Zelle</option>
+              <option>Cash</option>
+              <option>Venmo</option>
+              <option>Bank Transfer</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div class="field"><label>Notes</label><textarea id="editPaymentNotes"></textarea></div>
+          <button id="savePaymentEditBtn" class="primary">Save Payment</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-add" class="tab-panel">
+      <div class="grid-3">
+        <div class="card">
+          <h3>Add Borrower</h3>
+          <div class="field"><label>Name</label><input id="borrowerName" /></div>
+          <div class="field"><label>Email</label><input id="borrowerEmail" /></div>
+          <div class="field"><label>Phone</label><input id="borrowerPhone" /></div>
+          <div class="field"><label>Zelle</label><input id="borrowerZelle" /></div>
+          <div class="field"><label>Notes</label><textarea id="borrowerNotes"></textarea></div>
+          <button id="addBorrowerBtn" class="primary">Add Borrower</button>
+        </div>
+
+        <div class="card">
+          <h3>Add Loan</h3>
+          <div class="field"><label>Borrower</label><select id="loanBorrower"></select></div>
+          <div class="field"><label>Principal</label><input id="loanPrincipal" type="number" step="0.01" /></div>
+          <div class="field"><label>Interest Rate %</label><input id="loanRate" type="number" step="0.01" /></div>
+          <div class="field"><label>Start Date</label><input id="loanStartDate" type="date" /></div>
+          <div class="field"><label>Due Date</label><input id="loanDueDate" type="date" /></div>
+          <div class="field"><label>Notes</label><textarea id="loanNotes"></textarea></div>
+          <button id="addLoanBtn" class="primary">Add Loan</button>
+        </div>
+
+        <div class="card">
+          <h3>Add Payment</h3>
+          <div class="field"><label>Loan</label><select id="paymentLoan"></select></div>
+          <div class="field"><label>Amount</label><input id="paymentAmount" type="number" step="0.01" /></div>
+          <div class="field"><label>Date</label><input id="paymentDate" type="date" /></div>
+          <div class="field"><label>Method</label>
+            <select id="paymentMethod">
+              <option>Zelle</option>
+              <option>Cash</option>
+              <option>Venmo</option>
+              <option>Bank Transfer</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div class="field"><label>Notes</label><textarea id="paymentNotes"></textarea></div>
+          <button id="addPaymentBtn" class="primary">Add Payment</button>
+        </div>
+      </div>
+    </section>
+
+    <div class="card" style="margin-top:24px;">
+      <h3>Monthly Payment Schedule</h3>
+      <div class="grid-3">
+        <div class="field"><label>Loan</label><select id="scheduleLoanSelect"></select></div>
+        <div class="field"><label>Number of Months</label><input id="scheduleMonths" type="number" min="1" value="12" /></div>
+        <div class="field"><label>First Payment Date</label><input id="scheduleFirstDate" type="date" /></div>
+      </div>
+      <div class="actions" style="margin-top:8px; margin-bottom:12px;">
+        <button id="generateScheduleBtn" class="primary">Generate Schedule</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Due Date</th>
+              <th>Payment</th>
+              <th>Principal</th>
+              <th>Interest</th>
+              <th>Balance</th>
+            </tr>
+          </thead>
+          <tbody id="scheduleTableBody">
+            <tr><td colspan="6" class="empty">Select a loan and generate a schedule.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function redirectPasswordRecoveryToBorrower() {
+      try {
+        var params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+        if (params.get("type") !== "recovery") return;
+        var target = new URL("borrower.html", window.location.href);
+        target.hash = window.location.hash;
+        window.location.replace(target.href);
+      } catch (e) {}
+    })();
+
+    const supabaseClient = window.supabase.createClient(
+      "https://ensuvkedfzepbpipivgp.supabase.co",
+      "sb_publishable_cQBGMqkJ_zaOoRj77-Hyvw_XzLH4ACW"
+    );
+
+    const state = {
+      borrowers: [],
+      loans: [],
+      payments: []
+    };
+
+    function todayStr() {
+      return new Date().toISOString().slice(0, 10);
+    }
+
+    function currency(n) {
+      return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+        maximumFractionDigits: 2
+      }).format(Number(n || 0));
+    }
+
+    function showMessage(text) {
+      const box = document.getElementById("messageBox");
+      box.textContent = text;
+      box.classList.remove("hidden");
+      clearTimeout(showMessage._timer);
+      showMessage._timer = setTimeout(() => box.classList.add("hidden"), 2500);
+    }
+
+    function escapeHtml(str) {
+      return String(str || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function getLoanStats(loan) {
+      const borrower = state.borrowers.find((b) => b.id === loan.borrower_id);
+      const payments = state.payments.filter((p) => p.loan_id === loan.id);
+      const paid = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+      const balance = Number(loan.principal || 0) - paid;
+      const isLate = loan.due_date && balance > 0 && new Date(loan.due_date) < new Date();
+      return { ...loan, borrower, payments, paid, balance, isLate };
+    }
+
+    function getLoansWithStats() {
+      return state.loans.map(getLoanStats);
+    }
+
+    function switchTab(name) {
+      document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
+      document.querySelectorAll(".tab-panel").forEach((p) => p.classList.remove("active"));
+      const btn = document.querySelector(`.tab-btn[data-tab="${name}"]`);
+      const panel = document.getElementById(`tab-${name}`);
+      if (btn) btn.classList.add("active");
+      if (panel) panel.classList.add("active");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    async function loadAllData() {
+      const { data: borrowers, error: borrowerError } = await supabaseClient
+        .from("borrowers")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      const { data: loans, error: loanError } = await supabaseClient
+        .from("loans")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      const { data: payments, error: paymentError } = await supabaseClient
+        .from("payments")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (borrowerError || loanError || paymentError) {
+        console.error(borrowerError || loanError || paymentError);
+        showMessage("Could not load database data.");
+        return;
+      }
+
+      state.borrowers = borrowers || [];
+      state.loans = loans || [];
+      state.payments = payments || [];
+      renderAll();
+    }
+
+    function renderStats() {
+      const loans = getLoansWithStats();
+      const totalLoaned = state.loans.reduce((sum, l) => sum + Number(l.principal || 0), 0);
+      const totalCollected = state.payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+      const outstanding = totalLoaned - totalCollected;
+      const activeLoans = loans.filter((l) => l.balance > 0).length;
+      const overdueLoans = loans.filter((l) => l.isLate).length;
+
+      document.getElementById("statLoaned").textContent = currency(totalLoaned);
+      document.getElementById("statCollected").textContent = currency(totalCollected);
+      document.getElementById("statOutstanding").textContent = currency(outstanding);
+      document.getElementById("statActive").textContent = String(activeLoans);
+      document.getElementById("statOverdue").textContent = String(overdueLoans);
+    }
+
+    function renderLoans() {
+      const tbody = document.getElementById("loansTableBody");
+      const q = document.getElementById("searchInput").value.trim().toLowerCase();
+      const loans = getLoansWithStats().filter((loan) => {
+        if (!q) return true;
+        const borrowerName = (loan.borrower?.name || "").toLowerCase();
+        const phone = (loan.borrower?.phone || "").toLowerCase();
+        const zelle = (loan.borrower?.zelle || "").toLowerCase();
+        return borrowerName.includes(q) || phone.includes(q) || zelle.includes(q) || String(loan.principal).includes(q);
+      });
+
+      if (!loans.length) {
+        tbody.innerHTML = '<tr><td colspan="7" class="empty">No loans yet</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = loans.map((loan) => {
+        let badgeClass = "badge-active";
+        let badgeText = "Active";
+        if (loan.balance <= 0) {
+          badgeClass = "badge-paid";
+          badgeText = "Paid";
+        } else if (loan.isLate) {
+          badgeClass = "badge-overdue";
+          badgeText = "Overdue";
+        }
+
+        return `
+          <tr>
+            <td>
+              <div><strong>${escapeHtml(loan.borrower?.name || "Unknown")}</strong></div>
+              <div class="small muted">${escapeHtml(loan.borrower?.zelle || loan.borrower?.phone || "")}</div>
+            </td>
+            <td>${currency(loan.principal)}</td>
+            <td>${currency(loan.paid)}</td>
+            <td><strong>${currency(loan.balance)}</strong></td>
+            <td>${escapeHtml(loan.due_date || "-")}</td>
+            <td><span class="badge ${badgeClass}">${badgeText}</span></td>
+            <td>
+              <div class="row-actions">
+                <button onclick="editLoan('${loan.id}')">Edit</button>
+                <button class="danger-link" onclick="deleteLoan('${loan.id}')">Delete</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function renderBorrowers() {
+      const grid = document.getElementById("borrowersGrid");
+      if (!state.borrowers.length) {
+        grid.innerHTML = '<div class="empty">No borrowers yet</div>';
+        return;
+      }
+
+      grid.innerHTML = state.borrowers.map((b) => `
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+            <strong>${escapeHtml(b.name)}</strong>
+            <button onclick="editBorrower('${b.id}')">Edit</button>
+          </div>
+          <div class="muted">${escapeHtml(b.email || "No email")}</div>
+          <div class="muted">${escapeHtml(b.phone || "No phone")}</div>
+          <div class="muted">${escapeHtml(b.zelle || "No Zelle")}</div>
+          ${b.notes ? `<div class="small muted" style="margin-top:8px;">${escapeHtml(b.notes)}</div>` : ""}
+        </div>
+      `).join("");
+    }
+
+    function renderPayments() {
+      const tbody = document.getElementById("paymentsTableBody");
+      const q = (document.getElementById("paymentSearchInput")?.value || "").trim().toLowerCase();
+      const sort = document.getElementById("paymentSortSelect")?.value || "newest";
+
+      const enriched = state.payments.map((p) => {
+        const loan = state.loans.find((l) => l.id === p.loan_id);
+        const borrower = state.borrowers.find((b) => b.id === loan?.borrower_id);
+        return { ...p, loan, borrower };
+      });
+
+      const grouped = {};
+      enriched.forEach((p) => {
+        if (!grouped[p.loan_id]) grouped[p.loan_id] = [];
+        grouped[p.loan_id].push(p);
+      });
+
+      const runningBalanceMap = {};
+      Object.keys(grouped).forEach((loanId) => {
+        const loan = state.loans.find((l) => l.id === loanId);
+        const principal = Number(loan?.principal || 0);
+        const asc = grouped[loanId].slice().sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")) || String(a.created_at || "").localeCompare(String(b.created_at || "")));
+        let paidSoFar = 0;
+        asc.forEach((p) => {
+          paidSoFar += Number(p.amount || 0);
+          runningBalanceMap[p.id] = Math.max(0, principal - paidSoFar);
+        });
+      });
+
+      let rows = enriched.filter((p) => {
+        if (!q) return true;
+        const hay = [p.date || "", p.borrower?.name || "", p.method || "", p.notes || "", p.loan?.notes || ""].join(" ").toLowerCase();
+        return hay.includes(q);
+      });
+
+      rows.sort((a, b) => {
+        const cmp = String(a.date || "").localeCompare(String(b.date || "")) || String(a.created_at || "").localeCompare(String(b.created_at || ""));
+        return sort === "oldest" ? cmp : -cmp;
+      });
+
+      if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="8" class="empty">No payments found</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = rows.map((p) => {
+        const loanLabel = p.loan ? currency(p.loan.principal) : "-";
+        return `
+          <tr>
+            <td>${escapeHtml(p.date || "")}</td>
+            <td>${escapeHtml(p.borrower?.name || "Unknown")}</td>
+            <td>${loanLabel}</td>
+            <td>${escapeHtml(p.method || "")}</td>
+            <td>${currency(p.amount)}</td>
+            <td>${currency(runningBalanceMap[p.id] || 0)}</td>
+            <td>${escapeHtml(p.notes || "-")}</td>
+            <td>
+              <div class="row-actions">
+                <button onclick="editPayment('${p.id}')">Edit</button>
+                <button onclick="showReceiptForPayment('${p.id}')">Receipt</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function renderBorrowerOptions() {
+      document.getElementById("loanBorrower").innerHTML = '<option value="">Select borrower</option>' + state.borrowers.map((b) => `
+        <option value="${b.id}">${escapeHtml(b.name)}</option>
+      `).join("");
+    }
+
+    function renderLoanOptions() {
+      const addPaymentSelect = document.getElementById("paymentLoan");
+      const editPaymentLoan = document.getElementById("editPaymentLoan");
+      const scheduleLoanSelect = document.getElementById("scheduleLoanSelect");
+      const openLoans = getLoansWithStats().filter((l) => l.balance > 0);
+      const allLoans = getLoansWithStats();
+
+      addPaymentSelect.innerHTML = '<option value="">Select loan</option>' + openLoans.map((l) => `
+        <option value="${l.id}">${escapeHtml(l.borrower?.name || "Unknown")} - ${currency(l.balance)} due</option>
+      `).join("");
+
+      editPaymentLoan.innerHTML = '<option value="">Select loan</option>' + allLoans.map((l) => `
+        <option value="${l.id}">${escapeHtml(l.borrower?.name || "Unknown")} - ${currency(l.balance)} balance</option>
+      `).join("");
+
+      scheduleLoanSelect.innerHTML = '<option value="">Select loan</option>' + allLoans.map((l) => `
+        <option value="${l.id}">${escapeHtml(l.borrower?.name || "Unknown")} - ${currency(l.principal)}</option>
+      `).join("");
+    }
+
+    function renderEditOptions() {
+      const borrowerSelect = document.getElementById("editBorrowerSelect");
+      const loanSelect = document.getElementById("editLoanSelect");
+      const loanBorrower = document.getElementById("editLoanBorrower");
+      const paymentSelect = document.getElementById("editPaymentSelect");
+
+      borrowerSelect.innerHTML = '<option value="">Select borrower</option>' + state.borrowers.map((b) => `
+        <option value="${b.id}">${escapeHtml(b.name)}</option>
+      `).join("");
+
+      loanBorrower.innerHTML = '<option value="">Select borrower</option>' + state.borrowers.map((b) => `
+        <option value="${b.id}">${escapeHtml(b.name)}</option>
+      `).join("");
+
+      loanSelect.innerHTML = '<option value="">Select loan</option>' + getLoansWithStats().map((l) => `
+        <option value="${l.id}">${escapeHtml(l.borrower?.name || "Unknown")} - ${currency(l.principal)}</option>
+      `).join("");
+
+      paymentSelect.innerHTML = '<option value="">Select payment</option>' + state.payments.map((p) => {
+        const loan = state.loans.find((l) => l.id === p.loan_id);
+        const borrower = state.borrowers.find((b) => b.id === loan?.borrower_id);
+        return `<option value="${p.id}">${escapeHtml(borrower?.name || "Unknown")} - ${escapeHtml(p.date || "")} - ${currency(p.amount)}</option>`;
+      }).join("");
+    }
+
+    function renderAll() {
+      renderStats();
+      renderLoans();
+      renderBorrowers();
+      renderPayments();
+      renderBorrowerOptions();
+      renderLoanOptions();
+      renderEditOptions();
+    }
+
+    function loadBorrowerIntoEditor(id) {
+      const b = state.borrowers.find((x) => x.id === id);
+      if (!b) return;
+      document.getElementById("editBorrowerSelect").value = b.id;
+      document.getElementById("editBorrowerName").value = b.name || "";
+      document.getElementById("editBorrowerEmail").value = b.email || "";
+      document.getElementById("editBorrowerPhone").value = b.phone || "";
+      document.getElementById("editBorrowerZelle").value = b.zelle || "";
+      document.getElementById("editBorrowerNotes").value = b.notes || "";
+    }
+
+    function loadLoanIntoEditor(id) {
+      const loan = state.loans.find((x) => x.id === id);
+      if (!loan) return;
+      document.getElementById("editLoanSelect").value = loan.id;
+      document.getElementById("editLoanBorrower").value = loan.borrower_id || "";
+      document.getElementById("editLoanPrincipal").value = loan.principal || "";
+      document.getElementById("editLoanRate").value = loan.rate || "";
+      document.getElementById("editLoanStartDate").value = loan.start_date || "";
+      document.getElementById("editLoanDueDate").value = loan.due_date || "";
+      document.getElementById("editLoanNotes").value = loan.notes || "";
+    }
+
+    function loadPaymentIntoEditor(id) {
+      const payment = state.payments.find((x) => x.id === id);
+      if (!payment) return;
+      document.getElementById("editPaymentSelect").value = payment.id;
+      document.getElementById("editPaymentLoan").value = payment.loan_id || "";
+      document.getElementById("editPaymentAmount").value = payment.amount || "";
+      document.getElementById("editPaymentDate").value = payment.date || "";
+      document.getElementById("editPaymentMethod").value = payment.method || "Zelle";
+      document.getElementById("editPaymentNotes").value = payment.notes || "";
+    }
+
+    function editBorrower(id) { loadBorrowerIntoEditor(id); switchTab("edit"); }
+    function editLoan(id) { loadLoanIntoEditor(id); switchTab("edit"); }
+    function editPayment(id) { loadPaymentIntoEditor(id); switchTab("edit"); }
+
+    function buildReceiptForPayment(paymentId) {
+      const payment = state.payments.find((x) => x.id === paymentId);
+      if (!payment) return null;
+      const loan = state.loans.find((l) => l.id === payment.loan_id);
+      if (!loan) return null;
+      const borrower = state.borrowers.find((b) => b.id === loan.borrower_id);
+      const loanStats = getLoanStats(loan);
+      const outstanding = Math.max(0, Number(loanStats.balance || 0));
+      const to = borrower?.email || (borrower?.zelle && borrower.zelle.includes("@") ? borrower.zelle : "");
+      const subject = `Payment receipt - ${borrower?.name || "Borrower"} - ${payment.date || todayStr()}`;
+      const body = [
+        `Hi ${borrower?.name || "there"},`,
+        "",
+        `This is a receipt for your payment received on ${payment.date || todayStr()}.`,
+        "",
+        `Payment amount: ${currency(payment.amount)}`,
+        `Payment method: ${payment.method || ""}`,
+        `Outstanding balance: ${currency(outstanding)}`,
+        loan.due_date ? `Due date: ${loan.due_date}` : "",
+        payment.notes ? `Notes: ${payment.notes}` : "",
+        "",
+        "Thank you,"
+      ].filter(Boolean).join("\n");
+      return { to, subject, body };
+    }
+
+    function showReceiptForPayment(paymentId) {
+      const receipt = buildReceiptForPayment(paymentId);
+      if (!receipt) return;
+      document.getElementById("receiptTo").value = receipt.to;
+      document.getElementById("receiptSubject").value = receipt.subject;
+      document.getElementById("receiptBody").value = receipt.body;
+      document.getElementById("receiptCard").classList.remove("hidden");
+      document.getElementById("receiptCard").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    async function deleteLoan(loanId) {
+      const { error } = await supabaseClient.from("loans").delete().eq("id", loanId);
+      if (error) {
+        console.error(error);
+        showMessage("Could not delete loan.");
+        return;
+      }
+      await loadAllData();
+      showMessage("Loan deleted.");
+    }
+
+    function addMonths(dateString, monthsToAdd) {
+      const date = new Date(dateString + "T00:00:00");
+      const originalDay = date.getDate();
+      date.setMonth(date.getMonth() + monthsToAdd);
+      if (date.getDate() < originalDay) date.setDate(0);
+      return date.toISOString().slice(0, 10);
+    }
+
+    function generateMonthlySchedule() {
+      const loanId = document.getElementById("scheduleLoanSelect").value;
+      const months = Number(document.getElementById("scheduleMonths").value || 0);
+      const firstDate = document.getElementById("scheduleFirstDate").value;
+      const tbody = document.getElementById("scheduleTableBody");
+      const loan = state.loans.find((x) => x.id === loanId);
+
+      if (!loan || !months || !firstDate) {
+        tbody.innerHTML = '<tr><td colspan="6" class="empty">Select a loan, months, and first payment date.</td></tr>';
+        return;
+      }
+
+      const principal = Number(loan.principal || 0);
+      const annualRate = Number(loan.rate || 0) / 100;
+      const monthlyRate = annualRate / 12;
+      const paymentAmount = monthlyRate === 0
+        ? principal / months
+        : (principal * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -months));
+      let balance = principal;
+      const rows = [];
+
+      for (let i = 1; i <= months; i += 1) {
+        const interest = monthlyRate === 0 ? 0 : balance * monthlyRate;
+        let principalPaid = paymentAmount - interest;
+        let payment = paymentAmount;
+        if (i === months) {
+          principalPaid = balance;
+          payment = principalPaid + interest;
+        }
+        balance = Math.max(0, balance - principalPaid);
+        rows.push({ number: i, dueDate: addMonths(firstDate, i - 1), payment, principalPaid, interest, balance });
+      }
+
+      tbody.innerHTML = rows.map((row) => `
+        <tr>
+          <td>${row.number}</td>
+          <td>${row.dueDate}</td>
+          <td>${currency(row.payment)}</td>
+          <td>${currency(row.principalPaid)}</td>
+          <td>${currency(row.interest)}</td>
+          <td>${currency(row.balance)}</td>
+        </tr>
+      `).join("");
+    }
+
+    window.editBorrower = editBorrower;
+    window.editLoan = editLoan;
+    window.editPayment = editPayment;
+    window.deleteLoan = deleteLoan;
+    window.showReceiptForPayment = showReceiptForPayment;
+
+    document.querySelectorAll(".tab-btn").forEach((btn) => {
+      btn.addEventListener("click", () => switchTab(btn.dataset.tab));
+    });
+
+    document.getElementById("searchInput").addEventListener("input", renderLoans);
+    document.getElementById("paymentSearchInput").addEventListener("input", renderPayments);
+    document.getElementById("paymentSortSelect").addEventListener("change", renderPayments);
+
+    document.getElementById("editBorrowerSelect").addEventListener("change", (e) => loadBorrowerIntoEditor(e.target.value));
+    document.getElementById("editLoanSelect").addEventListener("change", (e) => loadLoanIntoEditor(e.target.value));
+    document.getElementById("editPaymentSelect").addEventListener("change", (e) => loadPaymentIntoEditor(e.target.value));
+
+    document.getElementById("saveBorrowerEditBtn").addEventListener("click", async () => {
+      const id = document.getElementById("editBorrowerSelect").value;
+      if (!id) return;
+
+      const payload = {
+        name: document.getElementById("editBorrowerName").value.trim(),
+        email: document.getElementById("editBorrowerEmail").value.trim(),
+        phone: document.getElementById("editBorrowerPhone").value.trim(),
+        zelle: document.getElementById("editBorrowerZelle").value.trim(),
+        notes: document.getElementById("editBorrowerNotes").value.trim()
+      };
+
+      const { error } = await supabaseClient.from("borrowers").update(payload).eq("id", id);
+      if (error) {
+        console.error(error);
+        showMessage("Could not update borrower.");
+        return;
+      }
+
+      await loadAllData();
+      loadBorrowerIntoEditor(id);
+      showMessage("Borrower updated.");
+    });
+
+    document.getElementById("saveLoanEditBtn").addEventListener("click", async () => {
+      const id = document.getElementById("editLoanSelect").value;
+      if (!id) return;
+
+      const payload = {
+        borrower_id: document.getElementById("editLoanBorrower").value,
+        principal: Number(document.getElementById("editLoanPrincipal").value || 0),
+        rate: Number(document.getElementById("editLoanRate").value || 0),
+        start_date: document.getElementById("editLoanStartDate").value || null,
+        due_date: document.getElementById("editLoanDueDate").value || null,
+        notes: document.getElementById("editLoanNotes").value.trim()
+      };
+
+      const { error } = await supabaseClient.from("loans").update(payload).eq("id", id);
+      if (error) {
+        console.error(error);
+        showMessage("Could not update loan.");
+        return;
+      }
+
+      await loadAllData();
+      loadLoanIntoEditor(id);
+      showMessage("Loan updated.");
+    });
+
+    document.getElementById("savePaymentEditBtn").addEventListener("click", async () => {
+      const id = document.getElementById("editPaymentSelect").value;
+      if (!id) return;
+
+      const payload = {
+        loan_id: document.getElementById("editPaymentLoan").value,
+        amount: Number(document.getElementById("editPaymentAmount").value || 0),
+        date: document.getElementById("editPaymentDate").value,
+        method: document.getElementById("editPaymentMethod").value,
+        notes: document.getElementById("editPaymentNotes").value.trim()
+      };
+
+      const { error } = await supabaseClient.from("payments").update(payload).eq("id", id);
+      if (error) {
+        console.error(error);
+        showMessage("Could not update payment.");
+        return;
+      }
+
+      await loadAllData();
+      loadPaymentIntoEditor(id);
+      showMessage("Payment updated.");
+    });
+
+    document.getElementById("addBorrowerBtn").addEventListener("click", async () => {
+      const name = document.getElementById("borrowerName").value.trim();
+      const email = document.getElementById("borrowerEmail").value.trim();
+      const phone = document.getElementById("borrowerPhone").value.trim();
+      const zelle = document.getElementById("borrowerZelle").value.trim();
+      const notes = document.getElementById("borrowerNotes").value.trim();
+
+      if (!name) return;
+
+      const { error } = await supabaseClient.from("borrowers").insert([
+        { name, email, phone, zelle, notes }
+      ]);
+
+      if (error) {
+        console.error(error);
+        showMessage("Could not add borrower.");
+        return;
+      }
+
+      document.getElementById("borrowerName").value = "";
+      document.getElementById("borrowerEmail").value = "";
+      document.getElementById("borrowerPhone").value = "";
+      document.getElementById("borrowerZelle").value = "";
+      document.getElementById("borrowerNotes").value = "";
+
+      await loadAllData();
+      showMessage("Borrower added.");
+    });
+
+    document.getElementById("addLoanBtn").addEventListener("click", async () => {
+      const borrowerId = document.getElementById("loanBorrower").value;
+      const principal = document.getElementById("loanPrincipal").value;
+      const rate = document.getElementById("loanRate").value;
+      const startDate = document.getElementById("loanStartDate").value || todayStr();
+      const dueDate = document.getElementById("loanDueDate").value;
+      const notes = document.getElementById("loanNotes").value.trim();
+
+      if (!borrowerId || !principal) {
+        showMessage("Select a borrower and enter principal.");
+        return;
+      }
+
+      const payload = {
+        borrower_id: borrowerId,
+        principal: Number(principal || 0),
+        rate: Number(rate || 0),
+        start_date: startDate || null,
+        due_date: dueDate || null,
+        notes
+      };
+
+      console.log("Trying to insert loan:", payload);
+
+      const { data, error } = await supabaseClient
+        .from("loans")
+        .insert([payload])
+        .select();
+
+      if (error) {
+        console.error("Loan insert error:", error);
+        alert(
+          "Could not add loan.\n\n" +
+          "Message: " + (error.message || "") + "\n" +
+          "Code: " + (error.code || "") + "\n" +
+          "Details: " + (error.details || "") + "\n" +
+          "Hint: " + (error.hint || "")
+        );
+        return;
+      }
+
+      console.log("Loan inserted:", data);
+
+      document.getElementById("loanBorrower").value = "";
+      document.getElementById("loanPrincipal").value = "";
+      document.getElementById("loanRate").value = "";
+      document.getElementById("loanStartDate").value = todayStr();
+      document.getElementById("loanDueDate").value = "";
+      document.getElementById("loanNotes").value = "";
+
+      await loadAllData();
+      showMessage("Loan added.");
+    });
+
+    document.getElementById("addPaymentBtn").addEventListener("click", async () => {
+      const loanId = document.getElementById("paymentLoan").value;
+      const amount = document.getElementById("paymentAmount").value;
+      const date = document.getElementById("paymentDate").value || todayStr();
+      const method = document.getElementById("paymentMethod").value;
+      const notes = document.getElementById("paymentNotes").value.trim();
+
+      if (!loanId || !amount) return;
+
+      const { data, error } = await supabaseClient.from("payments").insert([
+        {
+          loan_id: loanId,
+          amount: Number(amount || 0),
+          date,
+          method,
+          notes
+        }
+      ]).select();
+
+      if (error) {
+        console.error(error);
+        showMessage("Could not add payment.");
+        return;
+      }
+
+      const newPayment = data && data[0] ? data[0] : null;
+
+      document.getElementById("paymentLoan").value = "";
+      document.getElementById("paymentAmount").value = "";
+      document.getElementById("paymentDate").value = todayStr();
+      document.getElementById("paymentMethod").value = "Zelle";
+      document.getElementById("paymentNotes").value = "";
+
+      await loadAllData();
+      if (newPayment) showReceiptForPayment(newPayment.id);
+      showMessage("Payment added.");
+    });
+
+    document.getElementById("exportBtn").addEventListener("click", () => {
+      const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "micro-loan-data.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    document.getElementById("importFile").addEventListener("change", async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      try {
+        const text = await file.text();
+        const parsed = JSON.parse(text);
+
+        if (Array.isArray(parsed.borrowers)) {
+          for (const b of parsed.borrowers) {
+            await supabaseClient.from("borrowers").insert([{
+              name: b.name || "",
+              email: b.email || "",
+              phone: b.phone || "",
+              zelle: b.zelle || "",
+              notes: b.notes || ""
+            }]);
+          }
+        }
+
+        await loadAllData();
+        showMessage("Import finished. Loans and payments from old exports were not imported automatically.");
+      } catch (e) {
+        console.error(e);
+        showMessage("Could not import that file.");
+      }
+
+      event.target.value = "";
+    });
+
+    document.getElementById("copyReceiptBtn").addEventListener("click", async () => {
+      const subject = document.getElementById("receiptSubject").value;
+      const body = document.getElementById("receiptBody").value;
+      const text = `Subject: ${subject}\n\n${body}`;
+      try {
+        await navigator.clipboard.writeText(text);
+        showMessage("Receipt email copied.");
+      } catch (e) {
+        showMessage("Could not copy receipt email.");
+      }
+    });
+
+    document.getElementById("openReceiptBtn").addEventListener("click", () => {
+      const to = document.getElementById("receiptTo").value.trim();
+      const subject = document.getElementById("receiptSubject").value;
+      const body = document.getElementById("receiptBody").value;
+      const href = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      window.location.href = href;
+    });
+
+    document.getElementById("generateScheduleBtn").addEventListener("click", generateMonthlySchedule);
+
+    document.getElementById("loanStartDate").value = todayStr();
+    document.getElementById("paymentDate").value = todayStr();
+    document.getElementById("scheduleFirstDate").value = todayStr();
+
+    loadAllData();
+  </script>
+</body>
+</html>

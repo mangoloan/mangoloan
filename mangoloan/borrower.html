@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Borrower Portal</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { font-family: Arial, sans-serif; background:#f6f8fb; margin:0; padding:20px; color:#111827; }
+    .wrap { max-width: 760px; margin: 0 auto; }
+    .card { background:white; border:1px solid #e5e7eb; border-radius:16px; padding:20px; margin-bottom:16px; }
+    h1,h2,h3 { margin-top:0; }
+    input { width:100%; padding:12px; margin:8px 0 12px; border:1px solid #d1d5db; border-radius:12px; font-size:16px; box-sizing:border-box; }
+    button { padding:12px 16px; border-radius:12px; border:1px solid #111827; background:#111827; color:white; cursor:pointer; }
+    button.secondary { background:white; color:#111827; }
+    .muted { color:#6b7280; }
+    .hidden { display:none; }
+    table { width:100%; border-collapse: collapse; }
+    th, td { text-align:left; padding:10px 8px; border-bottom:1px solid #e5e7eb; }
+    th { color:#6b7280; font-size:13px; }
+    .stats { display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:12px; }
+    .stat { background:#f9fafb; border:1px solid #e5e7eb; border-radius:14px; padding:14px; }
+    .value { font-size:24px; font-weight:700; }
+    @media (max-width: 640px) { .stats { grid-template-columns: 1fr; } }
+    a.nav-link { color:#2563eb; font-size:14px; font-weight:600; text-decoration:none; }
+    a.nav-link:hover { text-decoration:underline; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Borrower Portal</h1>
+      <p class="muted">Sign in to view your balance and payment history.</p>
+      <p class="muted" style="margin-top:12px;">
+        <a class="nav-link" href="../index.html">Home</a>
+        <span class="muted" style="margin:0 6px;">·</span>
+        Staff? <a class="nav-link" href="admin.html">Staff dashboard</a>
+      </p>
+    </div>
+
+    <div id="authCard" class="card">
+      <h2>Sign In</h2>
+      <input id="email" type="email" placeholder="Email" />
+      <input id="password" type="password" placeholder="Password" />
+
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button id="signInBtn">Sign In</button>
+        <button id="signUpBtn" class="secondary">Sign Up</button>
+        <button id="resetBtn" class="secondary">Forgot Password</button>
+      </div>
+
+      <p id="authMessage" class="muted"></p>
+    </div>
+
+    <div id="sessionBar" class="card hidden">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+        <a class="nav-link" href="../index.html">Home</a>
+        <button id="signOutBtn" type="button" class="secondary">Sign Out</button>
+      </div>
+      <p id="sessionMessage" class="muted" style="margin:12px 0 0;"></p>
+    </div>
+
+    <div id="passwordResetCard" class="card hidden">
+      <p class="muted" style="margin-bottom:12px;"><a class="nav-link" href="../index.html">Home</a></p>
+      <h2>Set New Password</h2>
+      <p class="muted">Enter your new password below.</p>
+      <input id="newPassword" type="password" placeholder="New password" />
+      <input id="confirmPassword" type="password" placeholder="Confirm new password" />
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button id="savePasswordBtn">Save New Password</button>
+      </div>
+      <p id="resetMessage" class="muted"></p>
+    </div>
+
+    <div id="dashboard" class="hidden">
+      <div class="card">
+        <h2 id="welcomeTitle">Your Loan</h2>
+        <div class="stats">
+          <div class="stat">
+            <div class="muted">Original Loan</div>
+            <div id="principalValue" class="value">$0.00</div>
+          </div>
+          <div class="stat">
+            <div class="muted">Total Paid</div>
+            <div id="paidValue" class="value">$0.00</div>
+          </div>
+          <div class="stat">
+            <div class="muted">Outstanding Balance</div>
+            <div id="balanceValue" class="value">$0.00</div>
+          </div>
+        </div>
+        <p id="dueDateText" class="muted" style="margin-top:14px;"></p>
+      </div>
+
+      <div class="card">
+        <h3>Payment History</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Method</th>
+              <th>Amount</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody id="paymentsBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const recoveryFromEmailLink = (function () {
+      try {
+        return new URLSearchParams(window.location.hash.replace(/^#/, "")).get("type") === "recovery";
+      } catch (e) {
+        return false;
+      }
+    })();
+
+    const supabaseClient = window.supabase.createClient(
+      "https://ensuvkedfzepbpipivgp.supabase.co",
+      "sb_publishable_cQBGMqkJ_zaOoRj77-Hyvw_XzLH4ACW",
+      {
+        auth: {
+          detectSessionInUrl: true
+        }
+      }
+    );
+
+    function currency(n) {
+      return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+        maximumFractionDigits: 2
+      }).format(Number(n || 0));
+    }
+
+    function setAuthMessage(text) {
+      document.getElementById("authMessage").textContent = text || "";
+    }
+
+    function setSessionMessage(text) {
+      document.getElementById("sessionMessage").textContent = text || "";
+    }
+
+    function setResetMessage(text) {
+      document.getElementById("resetMessage").textContent = text || "";
+    }
+
+    function showGuestChrome() {
+      document.getElementById("sessionBar").classList.add("hidden");
+      document.getElementById("authCard").classList.remove("hidden");
+    }
+
+    function showSignedInChrome() {
+      document.getElementById("authCard").classList.add("hidden");
+      document.getElementById("sessionBar").classList.remove("hidden");
+    }
+
+    function showResetCard() {
+      document.getElementById("passwordResetCard").classList.remove("hidden");
+      document.getElementById("authCard").classList.add("hidden");
+      document.getElementById("sessionBar").classList.add("hidden");
+      document.getElementById("dashboard").classList.add("hidden");
+    }
+
+    function showAuthCard() {
+      document.getElementById("passwordResetCard").classList.add("hidden");
+      showGuestChrome();
+    }
+
+    async function signIn() {
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+
+      if (!email || !password) {
+        setAuthMessage("Enter your email and password.");
+        return;
+      }
+
+      const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+      if (error) {
+        setAuthMessage(error.message);
+        return;
+      }
+
+      setAuthMessage("");
+      await loadBorrowerDashboard();
+    }
+
+    async function signUp() {
+      const email = document.getElementById("email").value.trim().toLowerCase();
+      const password = document.getElementById("password").value;
+
+      if (!email || !password) {
+        setAuthMessage("Enter your email and password first.");
+        return;
+      }
+
+      const { data, error } = await supabaseClient.auth.signUp({ email, password });
+
+      if (error) {
+        setAuthMessage(error.message + (error.code ? ` (${error.code})` : ""));
+        return;
+      }
+
+      const userId = data?.user?.id;
+      if (!userId) {
+        setAuthMessage("Account created. Check email confirmation settings if needed.");
+        return;
+      }
+
+      const defaultName = email.split("@")[0];
+
+      const { error: insertError } = await supabaseClient
+        .from("borrowers")
+        .insert({
+          name: defaultName,
+          email: email
+        });
+
+      if (insertError) {
+        setAuthMessage("Signup worked, but borrower creation failed: " + insertError.message + (insertError.code ? ` (${insertError.code})` : ""));
+        return;
+      }
+
+      setAuthMessage("Account created. You can now sign in.");
+    }
+
+    function passwordResetRedirectUrl() {
+      return new URL("borrower.html", window.location.href).href.replace(/[#?].*$/, "");
+    }
+
+    async function resetPassword() {
+      const email = document.getElementById("email").value.trim().toLowerCase();
+
+      if (!email) {
+        setAuthMessage("Enter your email first.");
+        return;
+      }
+
+      const redirectTo = passwordResetRedirectUrl();
+      if (redirectTo.startsWith("file:")) {
+        setAuthMessage(
+          "Password reset emails cannot be sent while this page is opened as a file on your computer. " +
+            "Start a small local server (for example run: npx serve . in this folder), then open borrower.html at an address like http://localhost:3000/borrower.html and try Forgot Password again."
+        );
+        return;
+      }
+
+      const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+        redirectTo
+      });
+
+      if (error) {
+        var hint = "";
+        var msg = (error.message || "").toLowerCase();
+        if (msg.includes("redirect") || msg.includes("url")) {
+          hint =
+            " In Supabase Dashboard → Authentication → URL Configuration, add this exact address under Redirect URLs: " +
+            redirectTo;
+        }
+        setAuthMessage((error.message || "Request failed.") + hint);
+        return;
+      }
+
+      setAuthMessage(
+        "If that email is registered, Supabase will send a reset link shortly. Check spam and promotions. " +
+          "The link only works if this exact page URL is allowed in Supabase → Authentication → URL Configuration → Redirect URLs: " +
+          redirectTo +
+          " (Site URL should match your site, e.g. http://localhost:3000 for local testing.) " +
+          "If nothing arrives, open Authentication → Users in Supabase to confirm the address, and consider enabling custom SMTP under Project Settings → Auth so mail is not rate-limited."
+      );
+    }
+
+    async function saveNewPassword() {
+      const newPassword = document.getElementById("newPassword").value;
+      const confirmPassword = document.getElementById("confirmPassword").value;
+
+      if (!newPassword || !confirmPassword) {
+        setResetMessage("Enter and confirm your new password.");
+        return;
+      }
+
+      if (newPassword !== confirmPassword) {
+        setResetMessage("Passwords do not match.");
+        return;
+      }
+
+      const { error } = await supabaseClient.auth.updateUser({
+        password: newPassword
+      });
+
+      if (error) {
+        setResetMessage(error.message);
+        return;
+      }
+
+      setResetMessage("Password updated.");
+      setTimeout(async () => {
+        document.getElementById("passwordResetCard").classList.add("hidden");
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (session) {
+          await loadBorrowerDashboard();
+        } else {
+          showAuthCard();
+          setAuthMessage("Password updated. Please sign in.");
+        }
+      }, 1200);
+    }
+
+    async function signOut() {
+      await supabaseClient.auth.signOut();
+      document.getElementById("dashboard").classList.add("hidden");
+      showGuestChrome();
+      setSessionMessage("");
+      setAuthMessage("Signed out.");
+    }
+
+    async function findBorrowerForUser(user) {
+      const { data: borrower, error } = await supabaseClient
+        .from("borrowers")
+        .select("*")
+        .eq("auth_user_id", user.id)
+        .maybeSingle();
+
+      if (error) {
+        return { borrower: null, error };
+      }
+
+      return { borrower, error: null };
+    }
+
+    async function loadBorrowerDashboard() {
+      const { data: authData, error: authError } = await supabaseClient.auth.getUser();
+      const user = authData?.user;
+
+      if (authError || !user) {
+        showGuestChrome();
+        document.getElementById("dashboard").classList.add("hidden");
+        setAuthMessage("No signed-in user found.");
+        return;
+      }
+
+      showSignedInChrome();
+      setSessionMessage("");
+
+      const { borrower, error: borrowerError } = await findBorrowerForUser(user);
+
+      if (borrowerError) {
+        setSessionMessage("Borrower lookup error: " + borrowerError.message + (borrowerError.code ? ` (${borrowerError.code})` : ""));
+        document.getElementById("dashboard").classList.add("hidden");
+        return;
+      }
+
+      if (!borrower) {
+        setSessionMessage("No borrower profile linked to this login yet.");
+        document.getElementById("dashboard").classList.add("hidden");
+        return;
+      }
+
+      const { data: loans, error: loanError } = await supabaseClient
+        .from("loans")
+        .select("*")
+        .eq("borrower_id", borrower.id)
+        .order("created_at", { ascending: false });
+
+      if (loanError) {
+        setSessionMessage("Loan lookup error: " + loanError.message);
+        document.getElementById("dashboard").classList.add("hidden");
+        return;
+      }
+
+      const loan = loans && loans.length ? loans[0] : null;
+      if (!loan) {
+        setSessionMessage("No loan found for this borrower.");
+        document.getElementById("dashboard").classList.add("hidden");
+        return;
+      }
+
+      const { data: payments, error: paymentError } = await supabaseClient
+        .from("payments")
+        .select("*")
+        .eq("loan_id", loan.id)
+        .order("date", { ascending: false });
+
+      if (paymentError) {
+        setSessionMessage("Payment lookup error: " + paymentError.message + (paymentError.code ? ` (${paymentError.code})` : ""));
+        document.getElementById("dashboard").classList.add("hidden");
+        return;
+      }
+
+      const totalPaid = (payments || []).reduce((sum, p) => sum + Number(p.amount || 0), 0);
+      const balance = Number(loan.principal || 0) - totalPaid;
+
+      document.getElementById("welcomeTitle").textContent = `${borrower.name}'s Loan`;
+      document.getElementById("principalValue").textContent = currency(loan.principal);
+      document.getElementById("paidValue").textContent = currency(totalPaid);
+      document.getElementById("balanceValue").textContent = currency(balance);
+      document.getElementById("dueDateText").textContent = loan.due_date ? `Due date: ${loan.due_date}` : "No due date set.";
+
+      const tbody = document.getElementById("paymentsBody");
+      if (!payments || !payments.length) {
+        tbody.innerHTML = `<tr><td colspan="4">No payments yet</td></tr>`;
+      } else {
+        tbody.innerHTML = payments.map((p) => `
+          <tr>
+            <td>${p.date || ""}</td>
+            <td>${p.method || ""}</td>
+            <td>${currency(p.amount)}</td>
+            <td>${p.notes || "-"}</td>
+          </tr>
+        `).join("");
+      }
+
+      document.getElementById("dashboard").classList.remove("hidden");
+      setSessionMessage("");
+    }
+
+    document.getElementById("signInBtn").addEventListener("click", signIn);
+    document.getElementById("signUpBtn").addEventListener("click", signUp);
+    document.getElementById("resetBtn").addEventListener("click", resetPassword);
+    document.getElementById("savePasswordBtn").addEventListener("click", saveNewPassword);
+    document.getElementById("signOutBtn").addEventListener("click", signOut);
+
+    supabaseClient.auth.onAuthStateChange(async (event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        showResetCard();
+        setResetMessage("Enter your new password below.");
+      }
+    });
+
+    supabaseClient.auth.getSession().then(({ data }) => {
+      if (recoveryFromEmailLink) {
+        showResetCard();
+        setResetMessage("Enter your new password below.");
+        return;
+      }
+      if (data.session) {
+        loadBorrowerDashboard();
+      }
+    });
+  </script>
+</body>
+</html>
