@@ -174,6 +174,38 @@
     .login-actions button {
       width: auto;
     }
+
+    .admin-tabs {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .admin-tab-btn {
+      width: auto;
+      margin-top: 0;
+      padding: 10px 18px;
+      background: #e5e7eb;
+      color: #1f2937;
+    }
+
+    .admin-tab-btn:hover {
+      opacity: 0.95;
+    }
+
+    .admin-tab-btn.active {
+      background: #111827;
+      color: #fff;
+    }
+
+    .admin-tab-panel {
+      display: none;
+    }
+
+    .admin-tab-panel.active {
+      display: block;
+    }
   </style>
 </head>
 <body>
@@ -225,6 +257,12 @@
         <div id="sessionInfo" class="status info">Loading session...</div>
       </div>
 
+      <div class="admin-tabs">
+        <button type="button" class="admin-tab-btn active" data-admin-tab="workspace">Workspace</button>
+        <button type="button" class="admin-tab-btn" data-admin-tab="edit-borrower">Edit borrower</button>
+      </div>
+
+      <div class="admin-tab-panel active" data-admin-tab="workspace">
       <div class="card">
         <h2>Create borrower</h2>
 
@@ -347,6 +385,37 @@
 
         <button id="savePaymentBtn" type="button">Save payment</button>
         <div id="paymentMsg"></div>
+      </div>
+      </div>
+
+      <div class="admin-tab-panel" data-admin-tab="edit-borrower">
+        <div class="card">
+          <h2>Edit borrower</h2>
+          <p class="muted">Update contact details and notes. Use Refresh on the Workspace tab after other changes.</p>
+
+          <label for="editBorrowerSelect">Borrower</label>
+          <select id="editBorrowerSelect">
+            <option value="">Select borrower</option>
+          </select>
+
+          <label for="editBorrowerName">Name</label>
+          <input id="editBorrowerName" type="text" placeholder="Name" />
+
+          <label for="editBorrowerEmail">Email</label>
+          <input id="editBorrowerEmail" type="email" placeholder="Email (optional)" />
+
+          <label for="editBorrowerPhone">Phone</label>
+          <input id="editBorrowerPhone" type="text" placeholder="Phone (optional)" />
+
+          <label for="editBorrowerZelle">Zelle</label>
+          <input id="editBorrowerZelle" type="text" placeholder="Zelle id (optional)" />
+
+          <label for="editBorrowerNotes">Notes</label>
+          <textarea id="editBorrowerNotes" placeholder="Notes (optional)"></textarea>
+
+          <button id="saveBorrowerEditBtn" type="button">Save borrower</button>
+          <div id="editBorrowerMsg" class="muted" style="margin-top:12px;"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -533,13 +602,62 @@
       return true;
     }
 
+    function switchAdminTab(name) {
+      document.querySelectorAll("#adminPanel .admin-tab-btn").forEach((b) => {
+        b.classList.toggle("active", b.dataset.adminTab === name);
+      });
+      document.querySelectorAll("#adminPanel .admin-tab-panel").forEach((p) => {
+        p.classList.toggle("active", p.dataset.adminTab === name);
+      });
+    }
+
+    function clearBorrowerEditor() {
+      document.getElementById("editBorrowerSelect").value = "";
+      document.getElementById("editBorrowerName").value = "";
+      document.getElementById("editBorrowerEmail").value = "";
+      document.getElementById("editBorrowerPhone").value = "";
+      document.getElementById("editBorrowerZelle").value = "";
+      document.getElementById("editBorrowerNotes").value = "";
+      const msg = document.getElementById("editBorrowerMsg");
+      msg.textContent = "";
+      msg.className = "muted";
+    }
+
+    function loadBorrowerIntoEditor(id) {
+      const msg = document.getElementById("editBorrowerMsg");
+      msg.textContent = "";
+      msg.className = "muted";
+      if (!id) {
+        clearBorrowerEditor();
+        return;
+      }
+      const b = state.borrowers.find((x) => x.id === id);
+      if (!b) return;
+      document.getElementById("editBorrowerSelect").value = b.id;
+      document.getElementById("editBorrowerName").value = b.name || "";
+      document.getElementById("editBorrowerEmail").value = b.email || "";
+      document.getElementById("editBorrowerPhone").value = b.phone || "";
+      document.getElementById("editBorrowerZelle").value = b.zelle || "";
+      document.getElementById("editBorrowerNotes").value = b.notes || "";
+    }
+
     function renderBorrowerSelects() {
-      const loanSel = document.getElementById("loanBorrowerSelect");
-      loanSel.innerHTML =
+      const opts =
         '<option value="">Select borrower</option>' +
         state.borrowers
           .map((b) => `<option value="${b.id}">${escapeHtml(b.name)}</option>`)
           .join("");
+
+      document.getElementById("loanBorrowerSelect").innerHTML = opts;
+
+      const editSel = document.getElementById("editBorrowerSelect");
+      const prevId = editSel.value;
+      editSel.innerHTML = opts;
+      if (prevId && state.borrowers.some((b) => b.id === prevId)) {
+        loadBorrowerIntoEditor(prevId);
+      } else {
+        clearBorrowerEditor();
+      }
     }
 
     function ensureSelectHasValue(selectEl, value) {
@@ -771,6 +889,41 @@
       await loadTables();
     }
 
+    async function saveBorrowerEdit() {
+      const id = document.getElementById("editBorrowerSelect").value;
+      if (!id) {
+        setStatus("editBorrowerMsg", "Select a borrower first.", "error");
+        return;
+      }
+
+      const name = document.getElementById("editBorrowerName").value.trim();
+      if (!name) {
+        setStatus("editBorrowerMsg", "Name is required.", "error");
+        return;
+      }
+
+      setStatus("editBorrowerMsg", "Saving...", "info");
+
+      const payload = {
+        name,
+        email: document.getElementById("editBorrowerEmail").value.trim() || null,
+        phone: document.getElementById("editBorrowerPhone").value.trim() || null,
+        zelle: document.getElementById("editBorrowerZelle").value.trim() || null,
+        notes: document.getElementById("editBorrowerNotes").value.trim() || null
+      };
+
+      const { error } = await supabase.from("borrowers").update(payload).eq("id", id);
+
+      if (error) {
+        setStatus("editBorrowerMsg", error.message, "error");
+        return;
+      }
+
+      setStatus("editBorrowerMsg", "Borrower updated.", "success");
+      await loadTables();
+      loadBorrowerIntoEditor(id);
+    }
+
     async function createLoan() {
       const borrowerId = document.getElementById("loanBorrowerSelect").value.trim();
       const principalValue = document.getElementById("principal").value.trim();
@@ -931,6 +1084,10 @@
       checkAdminAccess();
     });
 
+    document.querySelectorAll("#adminPanel .admin-tab-btn").forEach((btn) => {
+      btn.addEventListener("click", () => switchAdminTab(btn.dataset.adminTab));
+    });
+
     document.getElementById("createBorrowerBtn").addEventListener("click", createBorrower);
     document.getElementById("createLoanBtn").addEventListener("click", createLoan);
     document.getElementById("savePaymentBtn").addEventListener("click", savePayment);
@@ -939,6 +1096,12 @@
     document.getElementById("editPaymentSelect").addEventListener("change", (e) => {
       if (e.target.value) loadPaymentIntoEditor(e.target.value);
     });
+
+    document.getElementById("editBorrowerSelect").addEventListener("change", (e) => {
+      loadBorrowerIntoEditor(e.target.value);
+    });
+
+    document.getElementById("saveBorrowerEditBtn").addEventListener("click", saveBorrowerEdit);
 
     signOutBtn.addEventListener("click", signOut);
 
