@@ -569,6 +569,25 @@
       }
     );
 
+    function withTimeout(promise, ms, errMessage) {
+      var t;
+      return new Promise(function (resolve, reject) {
+        t = setTimeout(function () {
+          reject(new Error(errMessage || "Request timed out."));
+        }, ms);
+        promise.then(
+          function (val) {
+            clearTimeout(t);
+            resolve(val);
+          },
+          function (err) {
+            clearTimeout(t);
+            reject(err);
+          }
+        );
+      });
+    }
+
     var staffPasswordRecoveryActive = false;
     var staffDashboardAllowedUserId = null;
 
@@ -666,10 +685,14 @@
     }
 
     async function applySessionToStaffGate(sessionHint) {
+      if (sessionHint && sessionHint.user) {
+        staffPasswordRecoveryActive = false;
+      }
       if (staffPasswordRecoveryActive) return;
       var u = new URL(window.location.href);
       try {
-        if (new URLSearchParams(u.hash.replace(/^#/, "")).get("type") === "recovery") return;
+        var hashType = new URLSearchParams(u.hash.replace(/^#/, "")).get("type");
+        if (hashType === "recovery" && !(sessionHint && sessionHint.user)) return;
       } catch (e2) {}
       if (u.searchParams.has("code")) {
         if (sessionHint && sessionHint.user) {
@@ -1572,15 +1595,28 @@
       const email = document.getElementById("staffEmail").value.trim();
       const password = document.getElementById("staffPassword").value;
       const msg = document.getElementById("staffAuthMsg");
+      const signInBtn = document.getElementById("staffSignInBtn");
       msg.textContent = "";
       if (!email || !password) {
         msg.textContent = "Enter email and password.";
         return;
       }
+      if (window.location.protocol === "file:") {
+        msg.textContent =
+          "This page is opened as file://. Run a local server instead (e.g. npx serve .) and open http://127.0.0.1:3000/admin.html — otherwise sign-in cannot complete.";
+        return;
+      }
       msg.textContent = "Signing in…";
+      signInBtn.disabled = true;
       try {
         stripOAuthCodeFromUrl();
-        const { data: signData, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        const signResult = await withTimeout(
+          supabaseClient.auth.signInWithPassword({ email, password }),
+          45000,
+          "Sign-in did not finish within 45 seconds. Check your connection, firewall, VPN, and ad blockers (try another network)."
+        );
+        const signData = signResult.data;
+        const error = signResult.error;
         if (error) {
           msg.textContent = error.message;
           return;
@@ -1592,11 +1628,16 @@
             "Signed in but session was empty. Wait a moment and click Sign in again, or refresh the page.";
           return;
         }
-        await applySessionToStaffGate(session);
+        msg.textContent = "Checking staff access…";
+        await withTimeout(
+          applySessionToStaffGate(session),
+          90000,
+          "Loading the dashboard took too long. Check your connection or Supabase status; try again."
+        );
         var gate = document.getElementById("authGate");
-        if (!gate.classList.contains("hidden") && msg.textContent === "Signing in…") {
+        if (!gate.classList.contains("hidden") && msg.textContent === "Checking staff access…") {
           msg.textContent =
-            "Could not finish sign-in. If the address bar has ?code=, remove it and try again. Otherwise check admin_users and the browser console (F12).";
+            "Could not finish sign-in. Remove ?code= from the address bar if present. Confirm your user is in admin_users (Supabase). Open the console (F12) for errors.";
         } else if (!gate.classList.contains("hidden")) {
           /* showStaffAuthGate already set staffAuthMsg */
         } else {
@@ -1606,6 +1647,13 @@
         console.error(e);
         msg.textContent =
           (e && e.message) || "Sign-in failed (network or script error). Try again or check the console (F12).";
+      } finally {
+        signInBtn.disabled = false;
+        var gateEl = document.getElementById("authGate");
+        if (gateEl && !gateEl.classList.contains("hidden") && msg.textContent === "Signing in…") {
+          msg.textContent =
+            "Sign-in stalled. Use http:// not file://, try another browser/network, and check F12 → Console for errors.";
+        }
       }
     });
 
