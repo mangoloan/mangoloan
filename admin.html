@@ -691,9 +691,7 @@
       } catch (eStrip) {}
     }
 
-    var staffGateChain = Promise.resolve();
-
-    async function applySessionToStaffGateImpl(sessionHint) {
+    async function applySessionToStaffGate(sessionHint) {
       if (sessionHint && sessionHint.user) {
         staffPasswordRecoveryActive = false;
       }
@@ -713,8 +711,17 @@
 
       var user = sessionHint && sessionHint.user ? sessionHint.user : null;
       if (!user) {
-        const { data: userData } = await supabaseClient.auth.getUser();
-        user = userData && userData.user ? userData.user : null;
+        try {
+          const { data: userData } = await withTimeout(
+            supabaseClient.auth.getUser(),
+            20000,
+            "Could not reach Supabase Auth (getUser timed out). Check network, VPN, or ad blockers."
+          );
+          user = userData && userData.user ? userData.user : null;
+        } catch (eGu) {
+          console.warn(eGu);
+          user = null;
+        }
       }
       if (!user) {
         const { data: sessWrap } = await supabaseClient.auth.getSession();
@@ -737,16 +744,6 @@
       }
       showStaffApp();
       await loadAllData();
-    }
-
-    function applySessionToStaffGate(sessionHint) {
-      var next = staffGateChain.then(function () {
-        return applySessionToStaffGateImpl(sessionHint);
-      });
-      staffGateChain = next.catch(function (e) {
-        console.error("Staff gate error:", e);
-      });
-      return next;
     }
 
     function showStaffPasswordResetCard() {
