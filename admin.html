@@ -618,9 +618,16 @@
         if (staffPasswordRecoveryActive) return;
         var u = new URL(window.location.href);
         try {
-          if (new URLSearchParams(u.hash.replace(/^#/, "")).get("type") === "recovery") return;
+          var ht = new URLSearchParams(u.hash.replace(/^#/, "")).get("type");
+          if (ht === "recovery" && !(session && session.user)) return;
         } catch (e1) {}
-        if (u.searchParams.has("code")) return;
+        if (u.searchParams.has("code")) {
+          if (session && session.user) {
+            stripOAuthCodeFromUrl();
+          } else {
+            return;
+          }
+        }
         await applySessionToStaffGate(session);
       }
     });
@@ -684,7 +691,9 @@
       } catch (eStrip) {}
     }
 
-    async function applySessionToStaffGate(sessionHint) {
+    var staffGateChain = Promise.resolve();
+
+    async function applySessionToStaffGateImpl(sessionHint) {
       if (sessionHint && sessionHint.user) {
         staffPasswordRecoveryActive = false;
       }
@@ -721,13 +730,23 @@
         clearStaffDashboardAuth();
         hideStaffAppShell();
         showStaffAuthGate(
-          "You are signed in, but this account is not in admin_users. The staff dashboard is only for admin accounts. Sign out and sign in with a staff account, or use the borrower portal.",
+          "You are signed in, but this account is not in admin_users. The staff dashboard is only for admin accounts. Sign out and sign in with a staff account, or use the borrower portal. In Supabase: Table Editor → admin_users → add a row with user_id = your Auth user UUID.",
           { showSignOut: true }
         );
         return;
       }
       showStaffApp();
       await loadAllData();
+    }
+
+    function applySessionToStaffGate(sessionHint) {
+      var next = staffGateChain.then(function () {
+        return applySessionToStaffGateImpl(sessionHint);
+      });
+      staffGateChain = next.catch(function (e) {
+        console.error("Staff gate error:", e);
+      });
+      return next;
     }
 
     function showStaffPasswordResetCard() {
@@ -918,16 +937,29 @@
     }
 
     async function loadAllData() {
+      var uid = null;
       const { data: userData, error: gateUserErr } = await supabaseClient.auth.getUser();
-      if (gateUserErr || !userData || !userData.user) {
-        hideStaffAppShell();
-        showStaffAuthGate("");
-        return;
+      if (userData && userData.user) {
+        uid = userData.user.id;
+      } else {
+        const { data: sessWrap } = await supabaseClient.auth.getSession();
+        if (sessWrap.session && sessWrap.session.user) {
+          uid = sessWrap.session.user.id;
+        }
       }
-      if (!(await assertCanUseStaffDashboard(userData.user.id))) {
+      if (!uid) {
         hideStaffAppShell();
         showStaffAuthGate(
-          "You are signed in, but this account is not in admin_users. The staff dashboard is only for admin accounts. Sign out and sign in with a staff account, or use the borrower portal.",
+          gateUserErr
+            ? "Could not verify session: " + (gateUserErr.message || "try Sign out and sign in again.")
+            : ""
+        );
+        return;
+      }
+      if (!(await assertCanUseStaffDashboard(uid))) {
+        hideStaffAppShell();
+        showStaffAuthGate(
+          "You are signed in, but this account is not in admin_users. The staff dashboard is only for admin accounts. Sign out and sign in with a staff account, or use the borrower portal. In Supabase: Table Editor → admin_users → add a row with user_id = your Auth user UUID.",
           { showSignOut: true }
         );
         return;
