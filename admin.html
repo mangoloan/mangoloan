@@ -305,7 +305,7 @@
       <div class="field"><label for="staffPassword">Password</label><input id="staffPassword" type="password" autocomplete="current-password" /></div>
       <div class="actions" style="margin-top:14px;">
         <button type="button" id="staffSignInBtn" class="primary">Sign in</button>
-        <button type="button" id="staffForgotPasswordBtn">Forgot password</button>
+        <button type="button" id="staffForgotPasswordBtn">Reset admin password</button>
         <a href="index.html" class="file-label" style="text-decoration:none;">Home</a>
       </div>
       <p id="staffAuthMsg" class="muted" style="margin-top:12px;"></p>
@@ -895,7 +895,7 @@
       const msg = document.getElementById("staffAuthMsg");
       msg.textContent = "";
       if (!email) {
-        msg.textContent = "Enter your email above, then click Forgot password.";
+        msg.textContent = "Enter your admin email above, then click Reset admin password.";
         return;
       }
       const redirectTo = staffResetEmailRedirectUrl();
@@ -919,7 +919,7 @@
         return;
       }
       msg.textContent =
-        "If that email is registered, Supabase sent a reset link to the password reset page (reset-password.html). Check spam. In Supabase → Authentication → URL Configuration, allow this Redirect URL exactly: " +
+        "If that admin email is registered, Supabase sent a reset link. Check spam. In Supabase → Authentication → URL Configuration, allow this Redirect URL exactly: " +
         redirectTo +
         " (same origin as your site, e.g. https://yoursite.vercel.app/reset-password.html). If no email arrives, use Project Settings → Auth → SMTP or check Auth logs.";
     }
