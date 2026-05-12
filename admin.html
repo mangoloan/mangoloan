@@ -618,39 +618,43 @@
       shell.classList.add("hidden");
     }
 
-    supabaseClient.auth.onAuthStateChange(async (event, session) => {
+    supabaseClient.auth.onAuthStateChange((event, session) => {
       if (event === "PASSWORD_RECOVERY") {
         staffPasswordRecoveryActive = true;
-        showStaffPasswordResetCard();
+        setTimeout(showStaffPasswordResetCard, 0);
         return;
       }
       if (event === "SIGNED_OUT") {
         staffPasswordRecoveryActive = false;
         clearStaffDashboardAuth();
-        hideStaffAppShell();
-        showStaffAuthGate("");
+        setTimeout(function () {
+          hideStaffAppShell();
+          showStaffAuthGate("");
+        }, 0);
         return;
       }
       if (event === "INITIAL_SESSION" || event === "SIGNED_IN") {
-        if (staffPasswordRecoveryActive) {
-          showStaffPasswordResetCard();
-          return;
-        }
-        var u = new URL(window.location.href);
-        try {
-          if (new URLSearchParams(u.hash.replace(/^#/, "")).get("type") === "recovery") {
+        setTimeout(function () {
+          if (staffPasswordRecoveryActive) {
+            showStaffPasswordResetCard();
+            return;
+          }
+          var u = new URL(window.location.href);
+          try {
+            if (new URLSearchParams(u.hash.replace(/^#/, "")).get("type") === "recovery") {
+              staffPasswordRecoveryActive = true;
+              showStaffPasswordResetCard();
+              return;
+            }
+          } catch (e1) {}
+          if (session && sessionLooksLikePasswordRecovery(session)) {
             staffPasswordRecoveryActive = true;
             showStaffPasswordResetCard();
             return;
           }
-        } catch (e1) {}
-        if (session && sessionLooksLikePasswordRecovery(session)) {
-          staffPasswordRecoveryActive = true;
-          showStaffPasswordResetCard();
-          return;
-        }
-        if (u.searchParams.has("code") && (!session || !session.user)) return;
-        await applySessionToStaffGate(session);
+          if (u.searchParams.has("code") && (!session || !session.user)) return;
+          applySessionToStaffGate(session);
+        }, 0);
       }
     });
 
