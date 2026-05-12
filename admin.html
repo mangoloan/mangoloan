@@ -595,6 +595,19 @@
     var staffDashboardAllowedUserId = null;
     var loadAllDataGeneration = 0;
 
+    function clearStaleSupabaseAuthStorage() {
+      var matchers = ["ensuvkedfzepbpipivgp", "supabase.auth.token", "sb-"];
+      [window.localStorage, window.sessionStorage].forEach(function (store) {
+        if (!store) return;
+        for (var i = store.length - 1; i >= 0; i -= 1) {
+          var key = store.key(i) || "";
+          if (matchers.some(function (m) { return key.indexOf(m) !== -1; })) {
+            try { store.removeItem(key); } catch (e) {}
+          }
+        }
+      });
+    }
+
     function clearStaffDashboardAuth() {
       staffDashboardAllowedUserId = null;
     }
@@ -1761,6 +1774,7 @@
       signInBtn.disabled = true;
       try {
         stripOAuthCodeFromUrl();
+        clearStaleSupabaseAuthStorage();
         const signResult = await withTimeout(
           supabaseClient.auth.signInWithPassword({ email, password }),
           45000,
