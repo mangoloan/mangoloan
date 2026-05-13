@@ -542,9 +542,7 @@
           <div class="field"><label>Name</label><input id="editBorrowerName" /></div>
           <div class="field"><label>Email</label><input id="editBorrowerEmail" /></div>
           <div class="field"><label>Borrower Portal User ID</label><input id="editBorrowerAuthUserId" placeholder="Supabase Auth user UUID" /></div>
-          <p class="small muted" style="margin-top:-8px;">Use Create Portal User to create and link a Supabase Auth login automatically. Paste a UUID here only when linking an existing user.</p>
-          <button id="createBorrowerPortalUserBtn" type="button">Create Portal User</button>
-          <p id="borrowerPortalUserResult" class="small muted hidden"></p>
+          <p class="small muted" style="margin-top:-8px;">Create the borrower in Supabase Auth, then paste that user UUID here to let them see their portal.</p>
           <div class="field"><label>Phone</label><input id="editBorrowerPhone" /></div>
           <div class="field"><label>Zelle</label><input id="editBorrowerZelle" /></div>
           <div class="field"><label>Notes</label><textarea id="editBorrowerNotes"></textarea></div>
@@ -1678,47 +1676,6 @@
       document.getElementById("editBorrowerPhone").value = b.phone || "";
       document.getElementById("editBorrowerZelle").value = b.zelle || "";
       document.getElementById("editBorrowerNotes").value = b.notes || "";
-      const portalResult = document.getElementById("borrowerPortalUserResult");
-      portalResult.textContent = "";
-      portalResult.classList.add("hidden");
-      document.getElementById("createBorrowerPortalUserBtn").disabled = Boolean(b.auth_user_id);
-    }
-
-    async function createBorrowerPortalUser() {
-      const id = document.getElementById("editBorrowerSelect").value;
-      const email = document.getElementById("editBorrowerEmail").value.trim();
-      const result = document.getElementById("borrowerPortalUserResult");
-      if (!id) return showMessage("Select a borrower first.");
-      if (!email) return showMessage("Borrower email is required.");
-
-      const btn = document.getElementById("createBorrowerPortalUserBtn");
-      btn.disabled = true;
-      result.textContent = "Creating portal user...";
-      result.classList.remove("hidden");
-
-      const { data, error } = await supabaseClient.functions.invoke("create-borrower-user", {
-        body: {
-          borrowerId: id,
-          email,
-          redirectTo: new URL("borrower.html", window.location.href).href.replace(/[#?].*$/, "")
-        }
-      });
-
-      if (error || data?.error) {
-        console.error(error || data);
-        result.textContent = data?.hint || data?.error || error?.message || "Could not create portal user.";
-        btn.disabled = false;
-        showMessage("Could not create portal user.");
-        return;
-      }
-
-      await loadAllData();
-      loadBorrowerIntoEditor(id);
-      const passwordLine = data.tempPassword ? ` Temporary password: ${data.tempPassword}` : "";
-      const resetLine = data.resetLink ? ` Reset link: ${data.resetLink}` : "";
-      result.textContent = `${data.message || "Portal user created and linked."} User ID: ${data.userId}.${passwordLine}${resetLine}`;
-      result.classList.remove("hidden");
-      showMessage("Portal user created and linked.");
     }
 
     function loadLoanIntoEditor(id) {
@@ -1872,7 +1829,6 @@
     document.getElementById("editBorrowerSelect").addEventListener("change", (e) => loadBorrowerIntoEditor(e.target.value));
     document.getElementById("editLoanSelect").addEventListener("change", (e) => loadLoanIntoEditor(e.target.value));
     document.getElementById("editPaymentSelect").addEventListener("change", (e) => loadPaymentIntoEditor(e.target.value));
-    document.getElementById("createBorrowerPortalUserBtn").addEventListener("click", createBorrowerPortalUser);
 
     document.getElementById("saveBorrowerEditBtn").addEventListener("click", async () => {
       const id = document.getElementById("editBorrowerSelect").value;
