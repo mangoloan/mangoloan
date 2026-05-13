@@ -687,6 +687,7 @@
     var staffPendingMfaSession = null;
     var staffMfaFactorId = null;
     var staffMfaChallengeId = null;
+    var staffMfaSuccessHandler = null;
     var loadAllDataGeneration = 0;
     var staffAutoLogoutMessage = "";
     var STAFF_INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000;
@@ -734,6 +735,7 @@
       staffPendingMfaSession = null;
       staffMfaFactorId = null;
       staffMfaChallengeId = null;
+      staffMfaSuccessHandler = null;
     }
 
     function hideStaffAppShell() {
@@ -934,8 +936,9 @@
       showStaffMfaCard("enroll");
     }
 
-    async function requireStaffMfa(sessionHint) {
+    async function requireStaffMfa(sessionHint, successHandler) {
       staffPendingMfaSession = sessionHint;
+      staffMfaSuccessHandler = typeof successHandler === "function" ? successHandler : null;
       var aal = await supabaseClient.auth.mfa.getAuthenticatorAssuranceLevel();
       if (!aal.error && aal.data && aal.data.currentLevel === "aal2") return true;
 
@@ -973,6 +976,12 @@
         });
         if (verified.error) {
           msg.textContent = verified.error.message;
+          return;
+        }
+        if (staffMfaSuccessHandler) {
+          var handler = staffMfaSuccessHandler;
+          staffMfaSuccessHandler = null;
+          await handler();
           return;
         }
         msg.textContent = "Checking admin access…";
@@ -1192,23 +1201,34 @@
         msg.textContent = "Passwords do not match.";
         return;
       }
-      msg.textContent = "Saving…";
-      const { error } = await supabaseClient.auth.updateUser({ password: a });
-      if (error) {
-        msg.textContent = error.message;
-        return;
+      async function finishPasswordUpdate() {
+        msg.textContent = "Saving…";
+        const { error } = await supabaseClient.auth.updateUser({ password: a });
+        if (error) {
+          var low = String(error.message || "").toLowerCase();
+          if (low.indexOf("aal2") !== -1 || low.indexOf("mfa") !== -1) {
+            msg.textContent = "Enter your 2FA code to finish changing this password.";
+            var currentSession = (await supabaseClient.auth.getSession()).data.session;
+            await requireStaffMfa(currentSession, finishPasswordUpdate);
+            return;
+          }
+          msg.textContent = error.message;
+          return;
+        }
+        staffPasswordRecoveryActive = false;
+        try {
+          history.replaceState(null, "", staffResetRedirectUrl());
+        } catch (e) {}
+        clearStaffDashboardAuth();
+        var afterReset = await supabaseClient.auth.getSession();
+        await applySessionToStaffGate(afterReset.data.session);
+        var shell = document.getElementById("appShell");
+        if (shell.classList.contains("staff-dashboard-open")) {
+          showMessage("Password updated. You are signed in.");
+        }
       }
-      staffPasswordRecoveryActive = false;
-      try {
-        history.replaceState(null, "", staffResetRedirectUrl());
-      } catch (e) {}
-      clearStaffDashboardAuth();
-      var afterReset = await supabaseClient.auth.getSession();
-      await applySessionToStaffGate(afterReset.data.session);
-      var shell = document.getElementById("appShell");
-      if (shell.classList.contains("staff-dashboard-open")) {
-        showMessage("Password updated. You are signed in.");
-      }
+
+      await finishPasswordUpdate();
     }
 
     const state = {
