@@ -88,8 +88,21 @@ Deno.serve(async (req) => {
     .single();
   if (borrowerError || !borrower) return json({ error: "Borrower not found." }, 404);
 
+  async function linkedUserIsAdmin(userId: string) {
+    const { data, error } = await adminClient
+      .from("admin_users")
+      .select("user_id")
+      .eq("user_id", userId)
+      .limit(1);
+    if (error) return true;
+    return Boolean(data?.length);
+  }
+
   if (action === "set-temporary-password") {
     if (!borrower.auth_user_id) return json({ error: "Borrower does not have a linked portal user." }, 200);
+    if (await linkedUserIsAdmin(borrower.auth_user_id)) {
+      return json({ error: "Refusing to change password: this borrower is linked to an admin user ID. Fix the Borrower Portal User ID first." }, 200);
+    }
     const tempPassword = randomPassword();
     const { data: updated, error: updateUserError } = await adminClient.auth.admin.updateUserById(
       borrower.auth_user_id,
@@ -108,6 +121,9 @@ Deno.serve(async (req) => {
 
   if (action !== "create-user") return json({ error: "Unknown action." }, 400);
   if (!email || !email.includes("@")) return json({ error: "Borrower email is required." }, 400);
+  if (borrower.auth_user_id && await linkedUserIsAdmin(borrower.auth_user_id)) {
+    return json({ error: "Refusing to use this borrower link: Borrower Portal User ID belongs to an admin user." }, 200);
+  }
   if (borrower.auth_user_id) {
     return json({
       userId: borrower.auth_user_id,
