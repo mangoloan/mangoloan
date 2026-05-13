@@ -13,6 +13,10 @@ function json(body: unknown, status = 200) {
   });
 }
 
+function appError(message: string, details?: Record<string, unknown>) {
+  return json({ error: message, ...(details || {}) }, 200);
+}
+
 function randomPassword() {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
   const bytes = crypto.getRandomValues(new Uint8Array(18));
@@ -32,18 +36,18 @@ function jwtPayload(token: string) {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
+  if (req.method !== "POST") return appError("Method not allowed");
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!supabaseUrl || !anonKey || !serviceRoleKey) {
-    return json({ error: "Missing Supabase Edge Function environment variables." }, 500);
+    return appError("Missing Supabase Edge Function environment variables.");
   }
 
   const authHeader = req.headers.get("Authorization") || "";
   const token = authHeader.replace(/^Bearer\s+/i, "").trim();
-  if (!token) return json({ error: "Missing admin session." }, 401);
+  if (!token) return appError("Missing admin session. Sign out and sign back in as admin.");
 
   const userClient = createClient(supabaseUrl, anonKey, {
     global: { headers: { Authorization: `Bearer ${token}` } },
@@ -55,38 +59,38 @@ Deno.serve(async (req) => {
 
   const { data: callerData, error: callerError } = await userClient.auth.getUser(token);
   const caller = callerData?.user;
-  if (callerError || !caller) return json({ error: "Invalid admin session." }, 401);
+  if (callerError || !caller) return appError("Invalid admin session. Sign out and sign back in as admin.");
 
   const aal = jwtPayload(token)?.aal;
-  if (aal !== "aal2") return json({ error: "Please complete admin 2FA before creating portal users." }, 403);
+  if (aal !== "aal2") return appError("Please complete admin 2FA before creating portal users.");
 
   const { data: adminRows, error: adminError } = await adminClient
     .from("admin_users")
     .select("user_id")
     .eq("user_id", caller.id)
     .limit(1);
-  if (adminError) return json({ error: "Could not verify admin access." }, 500);
-  if (!adminRows?.length) return json({ error: "Admin access required." }, 403);
+  if (adminError) return appError("Could not verify admin access.");
+  if (!adminRows?.length) return appError("Admin access required.");
 
   let body: { action?: string; borrowerId?: string; email?: string; redirectTo?: string } = {};
   try {
     body = await req.json();
   } catch (_err) {
-    return json({ error: "Invalid JSON body." }, 400);
+    return appError("Invalid JSON body.");
   }
 
   const action = String(body.action || "create-user").trim();
   const borrowerId = String(body.borrowerId || "").trim();
   const email = String(body.email || "").trim().toLowerCase();
   const redirectTo = String(body.redirectTo || "").trim() || undefined;
-  if (!borrowerId) return json({ error: "Missing borrower ID." }, 400);
+  if (!borrowerId) return appError("Missing borrower ID.");
 
   const { data: borrower, error: borrowerError } = await adminClient
     .from("borrowers")
     .select("id, name, email, auth_user_id")
     .eq("id", borrowerId)
     .single();
-  if (borrowerError || !borrower) return json({ error: "Borrower not found." }, 404);
+  if (borrowerError || !borrower) return appError("Borrower not found.");
 
   async function linkedUserIsAdmin(userId: string) {
     const { data, error } = await adminClient
@@ -119,8 +123,8 @@ Deno.serve(async (req) => {
     });
   }
 
-  if (action !== "create-user") return json({ error: "Unknown action." }, 400);
-  if (!email || !email.includes("@")) return json({ error: "Borrower email is required." }, 400);
+  if (action !== "create-user") return appError("Unknown action.");
+  if (!email || !email.includes("@")) return appError("Borrower email is required.");
   if (borrower.auth_user_id && await linkedUserIsAdmin(borrower.auth_user_id)) {
     return json({ error: "Refusing to use this borrower link: Borrower Portal User ID belongs to an admin user." }, 200);
   }
@@ -147,10 +151,9 @@ Deno.serve(async (req) => {
   if (createError || !created?.user) {
     const message = createError?.message || "Could not create portal user.";
     const status = /already|registered|exists/i.test(message) ? 409 : 400;
-    return json({
-      error: message,
-      hint: status === 409 ? "That email may already exist in Supabase Auth. Link the existing user manually, or use a different email." : undefined
-    }, status);
+    return appError(message, {
+      hint: status === 409 ? "That email may already exist in Supabase Auth. If you still see Alex in Authentication → Users, copy that Auth UID into Borrower Portal User ID instead of creating a new user." : undefined
+    });
   }
 
   const { error: updateError } = await adminClient
@@ -159,11 +162,10 @@ Deno.serve(async (req) => {
     .eq("id", borrowerId);
 
   if (updateError) {
-    return json({
-      error: "Portal user was created, but borrower linking failed. Copy this user ID into the borrower manually.",
+    return appError("Portal user was created, but borrower linking failed. Copy this user ID into the borrower manually.", {
       userId: created.user.id,
       tempPassword
-    }, 500);
+    });
   }
 
   let resetLink = "";
