@@ -68,18 +68,18 @@ Deno.serve(async (req) => {
   if (adminError) return json({ error: "Could not verify admin access." }, 500);
   if (!adminRows?.length) return json({ error: "Admin access required." }, 403);
 
-  let body: { borrowerId?: string; email?: string; redirectTo?: string } = {};
+  let body: { action?: string; borrowerId?: string; email?: string; redirectTo?: string } = {};
   try {
     body = await req.json();
   } catch (_err) {
     return json({ error: "Invalid JSON body." }, 400);
   }
 
+  const action = String(body.action || "create-user").trim();
   const borrowerId = String(body.borrowerId || "").trim();
   const email = String(body.email || "").trim().toLowerCase();
   const redirectTo = String(body.redirectTo || "").trim() || undefined;
   if (!borrowerId) return json({ error: "Missing borrower ID." }, 400);
-  if (!email || !email.includes("@")) return json({ error: "Borrower email is required." }, 400);
 
   const { data: borrower, error: borrowerError } = await adminClient
     .from("borrowers")
@@ -87,6 +87,27 @@ Deno.serve(async (req) => {
     .eq("id", borrowerId)
     .single();
   if (borrowerError || !borrower) return json({ error: "Borrower not found." }, 404);
+
+  if (action === "set-temporary-password") {
+    if (!borrower.auth_user_id) return json({ error: "Borrower does not have a linked portal user." }, 200);
+    const tempPassword = randomPassword();
+    const { data: updated, error: updateUserError } = await adminClient.auth.admin.updateUserById(
+      borrower.auth_user_id,
+      { password: tempPassword }
+    );
+    if (updateUserError || !updated?.user) {
+      return json({ error: updateUserError?.message || "Could not set temporary password." }, 200);
+    }
+    return json({
+      userId: updated.user.id,
+      email: updated.user.email,
+      tempPassword,
+      message: "Temporary password set."
+    });
+  }
+
+  if (action !== "create-user") return json({ error: "Unknown action." }, 400);
+  if (!email || !email.includes("@")) return json({ error: "Borrower email is required." }, 400);
   if (borrower.auth_user_id) {
     return json({
       userId: borrower.auth_user_id,
