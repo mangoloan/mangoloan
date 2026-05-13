@@ -541,6 +541,8 @@
           <div class="field"><label>Select Borrower</label><select id="editBorrowerSelect"></select></div>
           <div class="field"><label>Name</label><input id="editBorrowerName" /></div>
           <div class="field"><label>Email</label><input id="editBorrowerEmail" /></div>
+          <div class="field"><label>Borrower Portal User ID</label><input id="editBorrowerAuthUserId" placeholder="Supabase Auth user UUID" /></div>
+          <p class="small muted" style="margin-top:-8px;">Create the borrower in Supabase Auth, then paste that user UUID here to let them see their portal.</p>
           <div class="field"><label>Phone</label><input id="editBorrowerPhone" /></div>
           <div class="field"><label>Zelle</label><input id="editBorrowerZelle" /></div>
           <div class="field"><label>Notes</label><textarea id="editBorrowerNotes"></textarea></div>
@@ -1530,6 +1532,7 @@
           <div class="muted">${escapeHtml(b.email || "No email")}</div>
           <div class="muted">${escapeHtml(b.phone || "No phone")}</div>
           <div class="muted">${escapeHtml(b.zelle || "No Zelle")}</div>
+          <div class="small muted">Portal: ${b.auth_user_id ? "Linked" : "Not linked"}</div>
           ${b.notes ? `<div class="small muted" style="margin-top:8px;">${escapeHtml(b.notes)}</div>` : ""}
         </div>
       `).join("");
@@ -1669,6 +1672,7 @@
       document.getElementById("editBorrowerSelect").value = b.id;
       document.getElementById("editBorrowerName").value = b.name || "";
       document.getElementById("editBorrowerEmail").value = b.email || "";
+      document.getElementById("editBorrowerAuthUserId").value = b.auth_user_id || "";
       document.getElementById("editBorrowerPhone").value = b.phone || "";
       document.getElementById("editBorrowerZelle").value = b.zelle || "";
       document.getElementById("editBorrowerNotes").value = b.notes || "";
@@ -1833,6 +1837,7 @@
       const payload = {
         name: document.getElementById("editBorrowerName").value.trim(),
         email: document.getElementById("editBorrowerEmail").value.trim(),
+        auth_user_id: document.getElementById("editBorrowerAuthUserId").value.trim() || null,
         phone: document.getElementById("editBorrowerPhone").value.trim(),
         zelle: document.getElementById("editBorrowerZelle").value.trim(),
         notes: document.getElementById("editBorrowerNotes").value.trim()
