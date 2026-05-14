@@ -632,35 +632,6 @@
 
       </div>
     </section>
-
-    <div class="card" style="margin-top:24px;">
-      <h3>Monthly Payment Schedule</h3>
-      <div class="grid-3">
-        <div class="field"><label>Loan</label><select id="scheduleLoanSelect"></select></div>
-        <div class="field"><label>Number of Months</label><input id="scheduleMonths" type="number" min="1" value="12" /></div>
-        <div class="field"><label>First Payment Date</label><input id="scheduleFirstDate" type="date" /></div>
-      </div>
-      <div class="actions" style="margin-top:8px; margin-bottom:12px;">
-        <button id="generateScheduleBtn" class="primary">Generate Schedule</button>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Due Date</th>
-              <th>Payment</th>
-              <th>Principal</th>
-              <th>Interest</th>
-              <th>Balance</th>
-            </tr>
-          </thead>
-          <tbody id="scheduleTableBody">
-            <tr><td colspan="6" class="empty">Select a loan and generate a schedule.</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
   </div>
   </div>
 
@@ -1680,7 +1651,6 @@
     function renderLoanOptions() {
       const addPaymentSelect = document.getElementById("paymentLoan");
       const editPaymentLoan = document.getElementById("editPaymentLoan");
-      const scheduleLoanSelect = document.getElementById("scheduleLoanSelect");
       const openLoans = getLoansWithStats().filter((l) => l.balance > 0);
       const allLoans = getLoansWithStats();
 
@@ -1690,10 +1660,6 @@
 
       editPaymentLoan.innerHTML = '<option value="">Select loan</option>' + allLoans.map((l) => `
         <option value="${l.id}">${escapeHtml(l.borrower?.name || "Unknown")} - ${currency(l.balance)} balance</option>
-      `).join("");
-
-      scheduleLoanSelect.innerHTML = '<option value="">Select loan</option>' + allLoans.map((l) => `
-        <option value="${l.id}">${escapeHtml(l.borrower?.name || "Unknown")} - ${currency(l.principal)}</option>
       `).join("");
     }
 
@@ -1937,59 +1903,6 @@
       }
       await loadAllData();
       showMessage("Loan deleted.");
-    }
-
-    function addMonths(dateString, monthsToAdd) {
-      const date = new Date(dateString + "T00:00:00");
-      const originalDay = date.getDate();
-      date.setMonth(date.getMonth() + monthsToAdd);
-      if (date.getDate() < originalDay) date.setDate(0);
-      return date.toISOString().slice(0, 10);
-    }
-
-    function generateMonthlySchedule() {
-      const loanId = document.getElementById("scheduleLoanSelect").value;
-      const months = Number(document.getElementById("scheduleMonths").value || 0);
-      const firstDate = document.getElementById("scheduleFirstDate").value;
-      const tbody = document.getElementById("scheduleTableBody");
-      const loan = state.loans.find((x) => x.id === loanId);
-
-      if (!loan || !months || !firstDate) {
-        tbody.innerHTML = '<tr><td colspan="6" class="empty">Select a loan, months, and first payment date.</td></tr>';
-        return;
-      }
-
-      const principal = Number(loan.principal || 0);
-      const annualRate = Number(loan.rate || 0) / 100;
-      const monthlyRate = annualRate / 12;
-      const paymentAmount = monthlyRate === 0
-        ? principal / months
-        : (principal * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -months));
-      let balance = principal;
-      const rows = [];
-
-      for (let i = 1; i <= months; i += 1) {
-        const interest = monthlyRate === 0 ? 0 : balance * monthlyRate;
-        let principalPaid = paymentAmount - interest;
-        let payment = paymentAmount;
-        if (i === months) {
-          principalPaid = balance;
-          payment = principalPaid + interest;
-        }
-        balance = Math.max(0, balance - principalPaid);
-        rows.push({ number: i, dueDate: addMonths(firstDate, i - 1), payment, principalPaid, interest, balance });
-      }
-
-      tbody.innerHTML = rows.map((row) => `
-        <tr>
-          <td>${row.number}</td>
-          <td>${row.dueDate}</td>
-          <td>${currency(row.payment)}</td>
-          <td>${currency(row.principalPaid)}</td>
-          <td>${currency(row.interest)}</td>
-          <td>${currency(row.balance)}</td>
-        </tr>
-      `).join("");
     }
 
     window.editBorrower = editBorrower;
@@ -2300,8 +2213,6 @@
       window.location.href = href;
     });
 
-    document.getElementById("generateScheduleBtn").addEventListener("click", generateMonthlySchedule);
-
     document.getElementById("staffSignInBtn").addEventListener("click", async () => {
       const email = document.getElementById("staffEmail").value.trim();
       const password = document.getElementById("staffPassword").value;
@@ -2402,7 +2313,6 @@
 
     document.getElementById("loanStartDate").value = todayStr();
     document.getElementById("paymentDate").value = todayStr();
-    document.getElementById("scheduleFirstDate").value = todayStr();
 
     startStaffInactivityWatcher();
     startStaffApp();
