@@ -110,6 +110,16 @@
       </div>
 
       <div class="card">
+        <h3>Change Password</h3>
+        <p class="muted small" style="margin-top:-8px;">Use this after signing in with a temporary password.</p>
+        <input id="currentPassword" type="password" placeholder="Current password" autocomplete="current-password" />
+        <input id="borrowerNewPassword" type="password" placeholder="New password" autocomplete="new-password" />
+        <input id="borrowerConfirmPassword" type="password" placeholder="Confirm new password" autocomplete="new-password" />
+        <button id="changePasswordBtn" type="button">Change Password</button>
+        <p id="changePasswordMessage" class="muted"></p>
+      </div>
+
+      <div class="card">
         <h3>Payment History</h3>
         <p class="muted small" style="margin-top:-8px;">Newest payments are shown first. Running balance shows what remained after each payment.</p>
         <div class="table-wrap">
@@ -203,6 +213,10 @@
       document.getElementById("resetMessage").textContent = text || "";
     }
 
+    function setChangePasswordMessage(text) {
+      document.getElementById("changePasswordMessage").textContent = text || "";
+    }
+
     function showGuestChrome() {
       document.getElementById("signOutBtn").classList.add("hidden");
       document.getElementById("authCard").classList.remove("hidden");
@@ -288,6 +302,57 @@
           " (Site URL should match your site, e.g. http://localhost:3000 for local testing.) " +
           "If nothing arrives, open Authentication → Users in Supabase to confirm the address, and consider enabling custom SMTP under Project Settings → Auth so mail is not rate-limited."
       );
+    }
+
+    async function changeBorrowerPassword() {
+      const currentPassword = document.getElementById("currentPassword").value;
+      const newPassword = document.getElementById("borrowerNewPassword").value;
+      const confirmPassword = document.getElementById("borrowerConfirmPassword").value;
+      const btn = document.getElementById("changePasswordBtn");
+      setChangePasswordMessage("");
+
+      if (!currentPassword || !newPassword || !confirmPassword) {
+        setChangePasswordMessage("Enter current password, new password, and confirmation.");
+        return;
+      }
+      if (newPassword !== confirmPassword) {
+        setChangePasswordMessage("New passwords do not match.");
+        return;
+      }
+      if (newPassword.length < 6) {
+        setChangePasswordMessage("New password must be at least 6 characters.");
+        return;
+      }
+
+      btn.disabled = true;
+      setChangePasswordMessage("Checking current password...");
+      try {
+        const { data: userData, error: userError } = await supabaseClient.auth.getUser();
+        const email = userData?.user?.email;
+        if (userError || !email) throw new Error("Could not confirm signed-in borrower email.");
+
+        const signedIn = await supabaseClient.auth.signInWithPassword({ email, password: currentPassword });
+        if (signedIn.error) {
+          setChangePasswordMessage("Current password is incorrect.");
+          return;
+        }
+
+        setChangePasswordMessage("Saving new password...");
+        const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
+        if (error) {
+          setChangePasswordMessage(error.message || "Could not change password.");
+          return;
+        }
+
+        document.getElementById("currentPassword").value = "";
+        document.getElementById("borrowerNewPassword").value = "";
+        document.getElementById("borrowerConfirmPassword").value = "";
+        setChangePasswordMessage("Password changed.");
+      } catch (e) {
+        setChangePasswordMessage((e && e.message) || "Could not change password.");
+      } finally {
+        btn.disabled = false;
+      }
     }
 
     async function saveNewPassword() {
@@ -453,6 +518,7 @@
     document.getElementById("signInBtn").addEventListener("click", signIn);
     document.getElementById("resetBtn").addEventListener("click", resetPassword);
     document.getElementById("savePasswordBtn").addEventListener("click", saveNewPassword);
+    document.getElementById("changePasswordBtn").addEventListener("click", changeBorrowerPassword);
     document.getElementById("signOutBtn").addEventListener("click", () => signOut());
 
     supabaseClient.auth.onAuthStateChange(async (event) => {
