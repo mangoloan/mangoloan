@@ -116,6 +116,17 @@
       <p id="authMessage" class="muted"></p>
     </div>
 
+    <div id="forgotPasswordCard" class="card hidden">
+      <h2>Reset Password</h2>
+      <p class="muted">Enter your email address and we’ll send a password reset link.</p>
+      <input id="resetEmail" type="email" placeholder="Email" autocomplete="email" />
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button id="sendResetEmailBtn" type="button">Send Reset Link</button>
+        <button id="cancelForgotPasswordBtn" type="button" class="secondary">Back to Sign In</button>
+      </div>
+      <p id="forgotPasswordMessage" class="muted"></p>
+    </div>
+
     <div id="passwordResetCard" class="card hidden">
       <p class="muted" style="margin-bottom:12px;"><a class="nav-link" href="index.html">Home</a></p>
       <h2>Set New Password</h2>
@@ -257,6 +268,10 @@
       document.getElementById("authMessage").textContent = text || "";
     }
 
+    function setForgotPasswordMessage(text) {
+      document.getElementById("forgotPasswordMessage").textContent = text || "";
+    }
+
     function setSessionMessage(text) {
       const el = document.getElementById("sessionMessage");
       el.textContent = text || "";
@@ -274,17 +289,20 @@
     function showGuestChrome() {
       document.getElementById("signedInActions").classList.add("hidden");
       document.getElementById("changePasswordCard").classList.add("hidden");
+      document.getElementById("forgotPasswordCard").classList.add("hidden");
       document.getElementById("authCard").classList.remove("hidden");
     }
 
     function showSignedInChrome() {
       document.getElementById("authCard").classList.add("hidden");
+      document.getElementById("forgotPasswordCard").classList.add("hidden");
       document.getElementById("signedInActions").classList.remove("hidden");
     }
 
     function showResetCard() {
       document.getElementById("passwordResetCard").classList.remove("hidden");
       document.getElementById("authCard").classList.add("hidden");
+      document.getElementById("forgotPasswordCard").classList.add("hidden");
       document.getElementById("signedInActions").classList.add("hidden");
       document.getElementById("changePasswordCard").classList.add("hidden");
       document.getElementById("dashboard").classList.add("hidden");
@@ -293,6 +311,22 @@
     function showAuthCard() {
       document.getElementById("passwordResetCard").classList.add("hidden");
       showGuestChrome();
+    }
+
+    function showForgotPasswordCard() {
+      const signInEmail = document.getElementById("email").value.trim();
+      document.getElementById("resetEmail").value = signInEmail;
+      document.getElementById("authCard").classList.add("hidden");
+      document.getElementById("forgotPasswordCard").classList.remove("hidden");
+      setAuthMessage("");
+      setForgotPasswordMessage("");
+      document.getElementById("resetEmail").focus();
+    }
+
+    function hideForgotPasswordCard() {
+      document.getElementById("forgotPasswordCard").classList.add("hidden");
+      document.getElementById("authCard").classList.remove("hidden");
+      setForgotPasswordMessage("");
     }
 
     async function signIn() {
@@ -319,25 +353,30 @@
     }
 
     async function resetPassword() {
-      const email = document.getElementById("email").value.trim().toLowerCase();
+      const email = document.getElementById("resetEmail").value.trim().toLowerCase();
+      const btn = document.getElementById("sendResetEmailBtn");
+      setForgotPasswordMessage("");
 
       if (!email) {
-        setAuthMessage("Enter your email first.");
+        setForgotPasswordMessage("Enter your email address.");
         return;
       }
 
       const redirectTo = passwordResetRedirectUrl();
       if (redirectTo.startsWith("file:")) {
-        setAuthMessage(
+        setForgotPasswordMessage(
           "Password reset emails cannot be sent while this page is opened as a file on your computer. " +
-            "Start a small local server (for example run: npx serve . in this folder), then open borrower.html at an address like http://localhost:3000/borrower.html and try Forgot Password again."
+            "Open the live borrower portal and try again."
         );
         return;
       }
 
+      btn.disabled = true;
+      setForgotPasswordMessage("Sending reset link...");
       const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
         redirectTo
       });
+      btn.disabled = false;
 
       if (error) {
         var hint = "";
@@ -347,16 +386,12 @@
             " In Supabase Dashboard → Authentication → URL Configuration, add this exact address under Redirect URLs: " +
             redirectTo;
         }
-        setAuthMessage((error.message || "Request failed.") + hint);
+        setForgotPasswordMessage((error.message || "Request failed.") + hint);
         return;
       }
 
-      setAuthMessage(
-        "If that email is registered, Supabase will send a reset link shortly. Check spam and promotions. " +
-          "The link only works if this exact page URL is allowed in Supabase → Authentication → URL Configuration → Redirect URLs: " +
-          redirectTo +
-          " (Site URL should match your site, e.g. http://localhost:3000 for local testing.) " +
-          "If nothing arrives, open Authentication → Users in Supabase to confirm the address, and consider enabling custom SMTP under Project Settings → Auth so mail is not rate-limited."
+      setForgotPasswordMessage(
+        "If that email is registered, a reset link was sent. Check inbox, spam, or promotions."
       );
     }
 
@@ -660,7 +695,9 @@
     }
 
     document.getElementById("signInBtn").addEventListener("click", signIn);
-    document.getElementById("resetBtn").addEventListener("click", resetPassword);
+    document.getElementById("resetBtn").addEventListener("click", showForgotPasswordCard);
+    document.getElementById("sendResetEmailBtn").addEventListener("click", resetPassword);
+    document.getElementById("cancelForgotPasswordBtn").addEventListener("click", hideForgotPasswordCard);
     document.getElementById("savePasswordBtn").addEventListener("click", saveNewPassword);
     document.getElementById("showChangePasswordBtn").addEventListener("click", showChangePasswordCard);
     document.getElementById("changePasswordBtn").addEventListener("click", changeBorrowerPassword);
