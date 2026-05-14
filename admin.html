@@ -545,6 +545,7 @@
           <p class="small muted" style="margin-top:-8px;">Use Create Portal User to create and link a Supabase Auth login automatically. Paste a UUID here only when linking an existing user.</p>
           <div class="row-actions" style="margin-bottom:8px;">
             <button id="createBorrowerPortalUserBtn" type="button">Create Portal User</button>
+            <button id="linkBorrowerPortalUserBtn" type="button">Find & Link Existing User</button>
             <button id="setBorrowerPortalPasswordBtn" type="button">Set Temporary Password</button>
           </div>
           <p id="borrowerPortalUserResult" class="small muted hidden"></p>
@@ -1705,7 +1706,43 @@
       portalResult.textContent = "";
       portalResult.classList.add("hidden");
       document.getElementById("createBorrowerPortalUserBtn").disabled = Boolean(b.auth_user_id);
+      document.getElementById("linkBorrowerPortalUserBtn").disabled = Boolean(b.auth_user_id);
       document.getElementById("setBorrowerPortalPasswordBtn").disabled = !b.auth_user_id;
+    }
+
+    async function linkBorrowerPortalUser() {
+      const id = document.getElementById("editBorrowerSelect").value;
+      const email = document.getElementById("editBorrowerEmail").value.trim();
+      const result = document.getElementById("borrowerPortalUserResult");
+      if (!id) return showMessage("Select a borrower first.");
+      if (!email) return showMessage("Borrower email is required.");
+
+      const btn = document.getElementById("linkBorrowerPortalUserBtn");
+      btn.disabled = true;
+      result.textContent = "Finding existing portal user...";
+      result.classList.remove("hidden");
+
+      const { data, error } = await supabaseClient.functions.invoke("create-borrower-user", {
+        body: {
+          action: "link-existing-user",
+          borrowerId: id,
+          email
+        }
+      });
+
+      if (error || data?.error) {
+        console.error(error || data);
+        result.textContent = data?.error || error?.message || "Could not link existing portal user.";
+        btn.disabled = false;
+        showMessage("Could not link existing portal user.");
+        return;
+      }
+
+      await loadAllData();
+      loadBorrowerIntoEditor(id);
+      result.textContent = `${data.message || "Existing portal user linked."} Login email: ${data.email}. User ID: ${data.userId}.`;
+      result.classList.remove("hidden");
+      showMessage("Existing portal user linked.");
     }
 
     async function setBorrowerPortalPassword() {
@@ -1933,6 +1970,7 @@
     document.getElementById("editLoanSelect").addEventListener("change", (e) => loadLoanIntoEditor(e.target.value));
     document.getElementById("editPaymentSelect").addEventListener("change", (e) => loadPaymentIntoEditor(e.target.value));
     document.getElementById("createBorrowerPortalUserBtn").addEventListener("click", createBorrowerPortalUser);
+    document.getElementById("linkBorrowerPortalUserBtn").addEventListener("click", linkBorrowerPortalUser);
     document.getElementById("setBorrowerPortalPasswordBtn").addEventListener("click", setBorrowerPortalPassword);
 
     document.getElementById("saveBorrowerEditBtn").addEventListener("click", async () => {

@@ -102,6 +102,41 @@ Deno.serve(async (req) => {
     return Boolean(data?.length);
   }
 
+  async function findAuthUserByEmail(targetEmail: string) {
+    const normalized = targetEmail.trim().toLowerCase();
+    for (let page = 1; page <= 20; page += 1) {
+      const { data, error } = await adminClient.auth.admin.listUsers({ page, perPage: 100 });
+      if (error) throw error;
+      const found = data.users.find((u) => String(u.email || "").toLowerCase() === normalized);
+      if (found) return found;
+      if (data.users.length < 100) break;
+    }
+    return null;
+  }
+
+  if (action === "link-existing-user") {
+    if (!email || !email.includes("@")) return appError("Borrower email is required.");
+    const existingUser = await findAuthUserByEmail(email);
+    if (!existingUser) {
+      return appError("No Supabase Auth user found for this borrower email. Use Create Portal User instead.");
+    }
+    if (await linkedUserIsAdmin(existingUser.id)) {
+      return appError("Refusing to link: that email belongs to an admin user.");
+    }
+    const { error: linkError } = await adminClient
+      .from("borrowers")
+      .update({ email, auth_user_id: existingUser.id })
+      .eq("id", borrowerId);
+    if (linkError) {
+      return appError("Found the Auth user, but borrower linking failed.", { userId: existingUser.id });
+    }
+    return json({
+      userId: existingUser.id,
+      email: existingUser.email,
+      message: "Existing portal user linked."
+    });
+  }
+
   if (action === "set-temporary-password") {
     if (!borrower.auth_user_id) return json({ error: "Borrower does not have a linked portal user." }, 200);
     if (await linkedUserIsAdmin(borrower.auth_user_id)) {
