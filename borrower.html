@@ -49,6 +49,8 @@
     h1 { font-size:32px; margin-bottom:8px; white-space:nowrap; }
     h2 { font-size:24px; }
     h3 { font-size:18px; }
+    .field { margin-bottom:12px; }
+    .field label { display:block; font-size:13px; font-weight:700; margin-bottom:6px; }
     input { width:100%; padding:13px 14px; margin:8px 0 12px; border:1px solid #d1d5db; border-radius:14px; font-size:16px; box-sizing:border-box; background:white; }
     input:focus { outline:3px solid rgba(245,158,11,.18); border-color:var(--accent); }
     button { padding:12px 16px; border-radius:14px; border:1px solid var(--accent); background:linear-gradient(135deg,var(--accent),#f97316); color:#1f2937; cursor:pointer; font-weight:700; box-shadow:0 8px 20px rgba(245,158,11,.16); }
@@ -124,8 +126,8 @@
 
     <div id="authCard" class="card">
       <h2>Borrower Sign In</h2>
-      <input id="email" type="email" placeholder="Email" />
-      <input id="password" type="password" placeholder="Password" />
+      <div class="field"><label for="email">Email</label><input id="email" type="email" placeholder="Email" /></div>
+      <div class="field"><label for="password">Password</label><input id="password" type="password" placeholder="Password" /></div>
 
       <div style="display:flex; gap:10px; flex-wrap:wrap;">
         <button id="signInBtn">Sign In</button>
