@@ -34,9 +34,12 @@
     .wrap { max-width: 980px; margin: 0 auto; }
     .card { background:rgba(255,255,255,.96); border:1px solid var(--line); border-radius:22px; padding:22px; margin-bottom:16px; box-shadow:0 10px 28px rgba(15,23,42,.06); }
     .hero { border:0; color:white; background:linear-gradient(135deg, #78350f 0%, #f59e0b 58%, #16a34a 100%); box-shadow:0 18px 44px rgba(146,64,14,.22); }
-    .hero .muted, .hero .nav-link { color:rgba(255,255,255,.78); }
-    .hero .nav-link { color:white; }
-    .hero button.secondary { border-color:rgba(255,255,255,.5); background:rgba(255,255,255,.12); color:white; }
+    .hero .muted { color:rgba(255,255,255,.78); }
+    .hero-main { width:100%; display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; }
+    .hero-description { width:100%; margin:2px 0 0; max-width:680px; }
+    .hero .nav-link { color:white; font-size:14px; font-weight:700; text-decoration:none; }
+    .hero .nav-link:hover { text-decoration:underline; }
+    .hero button.nav-link { background:transparent; border:0; box-shadow:none; padding:0; min-height:auto; width:auto; cursor:pointer; font-family:inherit; }
     .brand-title { display:flex; align-items:center; gap:12px; }
     .brand-mark { width:140px; height:64px; border-radius:18px; background:#ffffff; border:1px solid #ffffff; display:grid; place-items:center; flex:0 0 auto; overflow:hidden; }
     .brand-mark img { width:126px; height:auto; display:block; }
@@ -80,8 +83,7 @@
       .card { padding:16px; border-radius:18px; }
       h1 { font-size:26px; }
       .value { font-size:24px; }
-      #signedInActions { width:100%; }
-      #signedInActions button { flex:1; }
+      .top-actions { width:100%; justify-content:flex-start; }
     }
     a.nav-link { color:var(--accent-dark); font-size:14px; font-weight:700; text-decoration:none; }
     a.nav-link:hover { text-decoration:underline; }
@@ -90,21 +92,20 @@
 <body>
   <div class="wrap">
     <div class="card hero">
-      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
+      <div class="hero-main">
         <div style="flex:1; min-width:220px;">
           <div class="brand-title"><span class="brand-mark" aria-hidden="true"><img src="assets/mango-loan-logo.jpg" alt="" /></span><h1>Borrower Portal</h1></div>
-          <p class="muted">View your balance, borrowed amounts, and payment history in one place.</p>
-          <p class="muted" style="margin-top:12px;">
-            <a class="nav-link" href="index.html">Home</a>
-            <span class="muted" style="margin:0 6px;">·</span>
-            Admin? <a class="nav-link" href="admin.html">Admin dashboard</a>
-          </p>
         </div>
-        <div id="signedInActions" class="hidden" style="display:flex; gap:10px; flex-wrap:wrap; flex-shrink:0;">
-          <button id="showChangePasswordBtn" type="button" class="secondary">Change password</button>
-          <button id="signOutBtn" type="button" class="secondary">Sign out</button>
+        <div class="actions top-actions" style="gap:14px; flex-shrink:0;">
+          <a class="nav-link" href="index.html">Home</a>
+          <a class="nav-link" href="admin.html">Admin dashboard</a>
+          <span id="signedInActions" class="actions hidden" style="gap:14px;">
+            <button id="showChangePasswordBtn" type="button" class="nav-link">Change password</button>
+            <button id="signOutBtn" type="button" class="nav-link">Sign out</button>
+          </span>
         </div>
       </div>
+      <p class="muted hero-description">View your balance, borrowed amounts, and payment history in one place.</p>
       <p id="sessionMessage" class="muted hidden" style="margin-top:12px;"></p>
     </div>
 
