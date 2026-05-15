@@ -109,6 +109,18 @@
       box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
     }
 
+    .top-actions {
+      align-items: stretch;
+    }
+
+    .top-actions > button,
+    .top-actions > .file-label {
+      width: 132px;
+      min-height: 46px;
+      padding: 12px 10px;
+      white-space: nowrap;
+    }
+
     .danger-link {
       color: var(--danger);
       background: transparent;
@@ -425,7 +437,7 @@
       <div>
         <div class="brand-heading"><span class="brand-mark" aria-hidden="true"><img src="assets/mango-loan-logo.jpg" alt="" /></span><h1>Micro Loan Tracker</h1></div>
       </div>
-      <div class="actions">
+      <div class="actions top-actions">
         <a href="index.html" class="file-label" style="text-decoration:none;">Home</a>
         <a href="borrower.html" class="file-label" style="text-decoration:none;">Borrower portal</a>
         <label class="file-label" for="importFile">Import Data</label>
