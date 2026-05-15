@@ -557,16 +557,16 @@
           <div class="brand-heading"><span class="brand-mark" aria-hidden="true"><img src="assets/mango-loan-logo.jpg" alt="" /></span><h1>Admin Dashboard</h1></div>
         </div>
         <div class="actions top-actions">
-          <button type="button" id="homeNavBtn" class="nav-link">Home</button>
+          <a href="index.html" id="homeNavBtn" class="nav-link">Home</a>
           <span class="nav-separator" aria-hidden="true">|</span>
-          <button type="button" id="borrowerNavBtn" class="nav-link">Borrower portal</button>
+          <a href="borrower.html" id="borrowerNavBtn" class="nav-link">Borrower portal</a>
           <span class="nav-separator" aria-hidden="true">|</span>
-          <button type="button" id="importDataLink" class="nav-link">Import Data</button>
+          <a href="#" id="importDataLink" class="nav-link">Import Data</a>
           <input id="importFile" type="file" accept="application/json" class="hidden" />
           <span class="nav-separator" aria-hidden="true">|</span>
-          <button type="button" id="exportBtn" class="nav-link">Export Data</button>
+          <a href="#" id="exportBtn" class="nav-link">Export Data</a>
           <span class="nav-separator" aria-hidden="true">|</span>
-          <button type="button" id="signOutBtn" class="nav-link">Sign out</button>
+          <a href="#" id="signOutBtn" class="nav-link">Sign out</a>
         </div>
       </div>
       <p class="muted hero-description">Manage borrowers, loans, payments, and balances in one place.</p>
@@ -2358,15 +2358,8 @@
     document.getElementById("previewZelleBtn").addEventListener("click", previewZelleText);
     document.getElementById("clearZelleBtn").addEventListener("click", clearZellePaste);
 
-    document.getElementById("homeNavBtn").addEventListener("click", () => {
-      window.location.href = "index.html";
-    });
-
-    document.getElementById("borrowerNavBtn").addEventListener("click", () => {
-      window.location.href = "borrower.html";
-    });
-
-    document.getElementById("exportBtn").addEventListener("click", () => {
+    document.getElementById("exportBtn").addEventListener("click", (event) => {
+      event.preventDefault();
       const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -2376,7 +2369,8 @@
       URL.revokeObjectURL(url);
     });
 
-    document.getElementById("importDataLink").addEventListener("click", () => {
+    document.getElementById("importDataLink").addEventListener("click", (event) => {
+      event.preventDefault();
       document.getElementById("importFile").click();
     });
 
@@ -2541,7 +2535,8 @@
       showStaffAuthGate("");
     });
 
-    document.getElementById("signOutBtn").addEventListener("click", async () => {
+    document.getElementById("signOutBtn").addEventListener("click", async (event) => {
+      event.preventDefault();
       clearStaffDashboardAuth();
       await supabaseClient.auth.signOut();
       window.location.href = "index.html";
