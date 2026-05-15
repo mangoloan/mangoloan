@@ -119,6 +119,9 @@
     @media (max-width: 900px) and (orientation: landscape) {
       .hero-main > div:first-child { width:100%; flex:0 0 100%; }
       .hero .top-actions { width:100%; justify-content:flex-start; }
+      .actions { width:100%; }
+      .actions > * { flex:1 1 calc(50% - 8px); }
+      .hero .top-actions > * { flex:0 0 auto; }
     }
     @media (max-width: 640px) {
       .wrap { padding:14px; padding-bottom:28px; }
