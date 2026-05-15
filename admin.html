@@ -179,31 +179,30 @@
 
     .hero .top-actions {
       align-items: center;
-      gap: 10px;
+      gap: 14px;
     }
 
     .hero .top-actions .nav-separator {
-      display: none;
+      color: rgba(255,255,255,.72);
+      font-weight: 700;
     }
 
     .hero .top-actions > .nav-link {
-      width: 132px;
-      min-height: 46px;
+      width: auto;
+      min-height: auto;
       margin: 0;
-      padding: 12px 10px;
-      border: 1px solid rgba(255,255,255,.5);
-      border-radius: 14px;
-      background: rgba(255,255,255,.12);
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
       color: white;
       box-shadow: none;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
+      display: inline;
       font-family: inherit;
       font-size: 14px;
-      font-weight: 700;
-      line-height: 1;
-      text-align: center;
+      font-weight: 800;
+      line-height: normal;
+      text-align: left;
       text-decoration: none;
       white-space: nowrap;
       cursor: pointer;
@@ -212,8 +211,7 @@
     }
 
     .hero .top-actions > .nav-link:hover {
-      background: rgba(255,255,255,.18);
-      text-decoration: none;
+      text-decoration: underline;
     }
 
     .danger-link {
@@ -560,10 +558,14 @@
         </div>
         <div class="actions top-actions">
           <button type="button" id="homeNavBtn" class="nav-link">Home</button>
+          <span class="nav-separator" aria-hidden="true">|</span>
           <button type="button" id="borrowerNavBtn" class="nav-link">Borrower portal</button>
+          <span class="nav-separator" aria-hidden="true">|</span>
           <button type="button" id="importDataLink" class="nav-link">Import Data</button>
           <input id="importFile" type="file" accept="application/json" class="hidden" />
+          <span class="nav-separator" aria-hidden="true">|</span>
           <button type="button" id="exportBtn" class="nav-link">Export Data</button>
+          <span class="nav-separator" aria-hidden="true">|</span>
           <button type="button" id="signOutBtn" class="nav-link">Sign out</button>
         </div>
       </div>
