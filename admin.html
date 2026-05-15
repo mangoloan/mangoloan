@@ -613,9 +613,16 @@
     </section>
 
     <section id="tab-add" class="tab-panel">
-      <div class="grid-3">
-        <div class="card">
-          <h3>Add Borrower</h3>
+      <div class="card" style="max-width:760px;">
+        <h3>Add Record</h3>
+        <div class="field"><label>What do you want to add?</label>
+          <select id="addTypeSelect">
+            <option value="borrower">Borrower</option>
+            <option value="loan">Loan</option>
+          </select>
+        </div>
+
+        <div id="addBorrowerPanel">
           <div class="field"><label>Name</label><input id="borrowerName" /></div>
           <div class="field"><label>Email</label><input id="borrowerEmail" /></div>
           <div class="field"><label>Phone</label><input id="borrowerPhone" /></div>
@@ -624,8 +631,7 @@
           <button id="addBorrowerBtn" class="primary">Add Borrower</button>
         </div>
 
-        <div class="card">
-          <h3>Add Loan</h3>
+        <div id="addLoanPanel" class="hidden">
           <div class="field"><label>Borrower</label><select id="loanBorrower"></select></div>
           <div class="field"><label>Principal</label><input id="loanPrincipal" type="number" step="0.01" /></div>
           <div class="field"><label>Interest Rate %</label><input id="loanRate" type="number" step="0.01" /></div>
@@ -634,7 +640,6 @@
           <div class="field"><label>Notes</label><textarea id="loanNotes"></textarea></div>
           <button id="addLoanBtn" class="primary">Add Loan</button>
         </div>
-
       </div>
     </section>
   </div>
@@ -1932,6 +1937,11 @@
     document.getElementById("paymentSortSelect").addEventListener("change", renderPayments);
 
     document.getElementById("editTypeSelect").addEventListener("change", (e) => setEditType(e.target.value));
+    document.getElementById("addTypeSelect").addEventListener("change", (e) => {
+      const type = e.target.value;
+      document.getElementById("addBorrowerPanel").classList.toggle("hidden", type !== "borrower");
+      document.getElementById("addLoanPanel").classList.toggle("hidden", type !== "loan");
+    });
     document.getElementById("editBorrowerSelect").addEventListener("change", (e) => loadBorrowerIntoEditor(e.target.value));
     document.getElementById("editLoanSelect").addEventListener("change", (e) => loadLoanIntoEditor(e.target.value));
     document.getElementById("editPaymentSelect").addEventListener("change", (e) => loadPaymentIntoEditor(e.target.value));
