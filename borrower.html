@@ -21,19 +21,21 @@
       --warning: #b45309;
     }
     * { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
     body {
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       background:
         radial-gradient(circle at top left, rgba(245, 158, 11, 0.22), transparent 28rem),
         radial-gradient(circle at bottom right, rgba(22, 163, 74, 0.12), transparent 24rem),
         var(--bg);
-      margin: 0;
-      padding: 24px 16px;
       color: var(--text);
     }
-    .wrap { max-width: 980px; margin: 0 auto; }
-    .card { background:rgba(255,255,255,.96); border:1px solid var(--line); border-radius:22px; padding:22px; margin-bottom:16px; box-shadow:0 10px 28px rgba(15,23,42,.06); }
-    .hero { border:0; color:white; background:linear-gradient(135deg, #78350f 0%, #f59e0b 58%, #16a34a 100%); box-shadow:0 18px 44px rgba(146,64,14,.22); }
+    .wrap { max-width: 1180px; margin: 0 auto; padding:20px; padding-bottom:40px; }
+    .topbar { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:20px; flex-wrap:wrap; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:22px; padding:18px; margin-bottom:16px; box-shadow:0 10px 28px rgba(180,83,9,.08); }
+    .card.hero { border:0; color:white; background:linear-gradient(135deg, #78350f 0%, #f59e0b 58%, #16a34a 100%); box-shadow:0 18px 44px rgba(146,64,14,.22); }
+    .card.hero.topbar { row-gap:0; }
     .hero .muted { color:rgba(255,255,255,.78); }
     .hero-main { width:100%; display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; }
     .hero-description { width:100%; margin:2px 0 0; max-width:680px; }
@@ -48,9 +50,11 @@
     h1,h2,h3 { margin-top:0; letter-spacing:-.02em; }
     h1 { font-size:32px; margin-bottom:8px; white-space:nowrap; }
     h2 { font-size:24px; }
-    h3 { font-size:18px; }
+    h3 { font-size:20px; margin:0 0 14px; }
     .field { margin-bottom:12px; }
     .field label { display:block; font-size:13px; font-weight:700; margin-bottom:6px; }
+    #authCard, #forgotPasswordCard, #passwordResetCard, #changePasswordCard { max-width:440px; width:100%; margin:0 auto 16px; }
+    #authCard h2, #forgotPasswordCard h2, #passwordResetCard h2, #changePasswordCard h3 { font-size:20px; margin:0 0 14px; }
     input { width:100%; padding:13px 14px; margin:8px 0 12px; border:1px solid #d1d5db; border-radius:14px; font-size:16px; box-sizing:border-box; background:white; }
     input:focus { outline:3px solid rgba(245,158,11,.18); border-color:var(--accent); }
     button { padding:12px 16px; border-radius:14px; border:1px solid var(--accent); background:linear-gradient(135deg,var(--accent),#f97316); color:#1f2937; cursor:pointer; font-weight:700; box-shadow:0 8px 20px rgba(245,158,11,.16); }
@@ -86,7 +90,7 @@
       .hero .top-actions { width:100%; justify-content:flex-start; }
     }
     @media (max-width: 640px) {
-      body { padding:12px; }
+      .wrap { padding:14px; padding-bottom:28px; }
       .stats { grid-template-columns: 1fr; }
       .card { padding:16px; border-radius:18px; }
       h1 { font-size:26px; }
@@ -103,7 +107,7 @@
 </head>
 <body>
   <div class="wrap">
-    <div class="card hero">
+    <div class="card hero topbar">
       <div class="hero-main">
         <div style="flex:1; min-width:220px;">
           <div class="brand-title"><span class="brand-mark" aria-hidden="true"><img src="assets/mango-loan-logo.jpg" alt="" /></span><h1>Borrower Portal</h1></div>
@@ -140,7 +144,7 @@
     <div id="forgotPasswordCard" class="card hidden">
       <h2>Reset Password</h2>
       <p class="muted">Enter your email address and we’ll send a password reset link.</p>
-      <input id="resetEmail" type="email" placeholder="Email" autocomplete="email" />
+      <div class="field"><label for="resetEmail">Email</label><input id="resetEmail" type="email" placeholder="Email" autocomplete="email" /></div>
       <div style="display:flex; gap:10px; flex-wrap:wrap;">
         <button id="sendResetEmailBtn" type="button">Send Reset Link</button>
         <button id="cancelForgotPasswordBtn" type="button" class="secondary">Back to Sign In</button>
@@ -152,8 +156,8 @@
       <p class="muted" style="margin-bottom:12px;"><a class="nav-link" href="index.html">Home</a></p>
       <h2>Set New Password</h2>
       <p class="muted">Enter your new password below.</p>
-      <input id="newPassword" type="password" placeholder="New password" />
-      <input id="confirmPassword" type="password" placeholder="Confirm new password" />
+      <div class="field"><label for="newPassword">New Password</label><input id="newPassword" type="password" placeholder="New password" /></div>
+      <div class="field"><label for="confirmPassword">Confirm Password</label><input id="confirmPassword" type="password" placeholder="Confirm new password" /></div>
       <div style="display:flex; gap:10px; flex-wrap:wrap;">
         <button id="savePasswordBtn">Save New Password</button>
       </div>
@@ -164,9 +168,9 @@
     <div id="changePasswordCard" class="card hidden">
       <h3>Change Password</h3>
       <p class="muted small" style="margin-top:-8px;">Enter your current password, then choose a new one.</p>
-      <input id="currentPassword" type="password" placeholder="Current password" autocomplete="current-password" />
-      <input id="borrowerNewPassword" type="password" placeholder="New password" autocomplete="new-password" />
-      <input id="borrowerConfirmPassword" type="password" placeholder="Confirm new password" autocomplete="new-password" />
+      <div class="field"><label for="currentPassword">Current Password</label><input id="currentPassword" type="password" placeholder="Current password" autocomplete="current-password" /></div>
+      <div class="field"><label for="borrowerNewPassword">New Password</label><input id="borrowerNewPassword" type="password" placeholder="New password" autocomplete="new-password" /></div>
+      <div class="field"><label for="borrowerConfirmPassword">Confirm Password</label><input id="borrowerConfirmPassword" type="password" placeholder="Confirm new password" autocomplete="new-password" /></div>
       <div style="display:flex; gap:10px; flex-wrap:wrap;">
         <button id="changePasswordBtn" type="button">Save Password</button>
         <button id="cancelChangePasswordBtn" type="button" class="secondary">Cancel</button>
