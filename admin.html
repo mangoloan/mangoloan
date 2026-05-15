@@ -553,9 +553,17 @@
     </section>
 
     <section id="tab-edit" class="tab-panel">
-      <div class="grid-3">
-        <div class="card">
-          <h3>Edit Borrower</h3>
+      <div class="card" style="max-width:760px;">
+        <h3>Edit Record</h3>
+        <div class="field"><label>What do you want to edit?</label>
+          <select id="editTypeSelect">
+            <option value="borrower">Borrower</option>
+            <option value="loan">Loan</option>
+            <option value="payment">Payment</option>
+          </select>
+        </div>
+
+        <div id="editBorrowerPanel">
           <div class="field"><label>Select Borrower</label><select id="editBorrowerSelect"></select></div>
           <div class="field"><label>Name</label><input id="editBorrowerName" /></div>
           <div class="field"><label>Email</label><input id="editBorrowerEmail" /></div>
@@ -573,8 +581,7 @@
           <button id="saveBorrowerEditBtn" class="primary">Save Borrower</button>
         </div>
 
-        <div class="card">
-          <h3>Edit Loan</h3>
+        <div id="editLoanPanel" class="hidden">
           <div class="field"><label>Select Loan</label><select id="editLoanSelect"></select></div>
           <div class="field"><label>Borrower</label><select id="editLoanBorrower"></select></div>
           <div class="field"><label>Principal</label><input id="editLoanPrincipal" type="number" step="0.01" /></div>
@@ -585,8 +592,7 @@
           <button id="saveLoanEditBtn" class="primary">Save Loan</button>
         </div>
 
-        <div class="card">
-          <h3>Edit Payment</h3>
+        <div id="editPaymentPanel" class="hidden">
           <div class="field"><label>Select Payment</label><select id="editPaymentSelect"></select></div>
           <div class="field"><label>Loan</label><select id="editPaymentLoan"></select></div>
           <div class="field"><label>Amount</label><input id="editPaymentAmount" type="number" step="0.01" /></div>
@@ -1846,9 +1852,16 @@
       document.getElementById("editPaymentNotes").value = payment.notes || "";
     }
 
-    function editBorrower(id) { loadBorrowerIntoEditor(id); switchTab("edit"); }
-    function editLoan(id) { loadLoanIntoEditor(id); switchTab("edit"); }
-    function editPayment(id) { loadPaymentIntoEditor(id); switchTab("edit"); }
+    function setEditType(type) {
+      document.getElementById("editTypeSelect").value = type;
+      document.getElementById("editBorrowerPanel").classList.toggle("hidden", type !== "borrower");
+      document.getElementById("editLoanPanel").classList.toggle("hidden", type !== "loan");
+      document.getElementById("editPaymentPanel").classList.toggle("hidden", type !== "payment");
+    }
+
+    function editBorrower(id) { setEditType("borrower"); loadBorrowerIntoEditor(id); switchTab("edit"); }
+    function editLoan(id) { setEditType("loan"); loadLoanIntoEditor(id); switchTab("edit"); }
+    function editPayment(id) { setEditType("payment"); loadPaymentIntoEditor(id); switchTab("edit"); }
 
     function buildReceiptForPayment(paymentId) {
       const payment = state.payments.find((x) => x.id === paymentId);
@@ -1918,6 +1931,7 @@
     document.getElementById("paymentSearchInput").addEventListener("input", renderPayments);
     document.getElementById("paymentSortSelect").addEventListener("change", renderPayments);
 
+    document.getElementById("editTypeSelect").addEventListener("change", (e) => setEditType(e.target.value));
     document.getElementById("editBorrowerSelect").addEventListener("change", (e) => loadBorrowerIntoEditor(e.target.value));
     document.getElementById("editLoanSelect").addEventListener("change", (e) => loadLoanIntoEditor(e.target.value));
     document.getElementById("editPaymentSelect").addEventListener("change", (e) => loadPaymentIntoEditor(e.target.value));
