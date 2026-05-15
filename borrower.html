@@ -137,13 +137,13 @@
     .section-title { display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
     @media (max-width: 900px) and (orientation: landscape) {
       .hero-main > div:first-child { width:100%; flex:0 0 100%; }
-      .hero .top-actions { width:100%; justify-content:flex-start; }
+      .hero .top-actions { width:100%; justify-content:flex-start; align-items:center; flex-wrap:nowrap; gap:14px; overflow-x:auto; }
       .actions { width:100%; }
       .actions > * { flex:1 1 calc(50% - 8px); }
       .hero .top-actions > * { flex:0 0 auto; }
-      #signedInActions { width:100%; flex:0 0 100%; gap:10px 16px !important; }
+      #signedInActions { width:auto; flex:0 0 auto; gap:14px !important; flex-wrap:nowrap; }
       #signedInActions > * { flex:0 0 auto !important; }
-      #signedInActions .nav-separator { display:none; }
+      #signedInActions .nav-separator { display:inline; }
     }
     @media (max-width: 640px) {
       .wrap { padding:14px; padding-bottom:28px; }
