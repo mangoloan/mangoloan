@@ -422,10 +422,24 @@
       .container { padding: 14px; padding-bottom: 28px; }
       h1 { font-size: 28px; }
       .topbar { gap: 12px; }
+      .hero .top-actions {
+        width: 100%;
+        justify-content: flex-start;
+        align-items: flex-start;
+        gap: 10px 16px;
+      }
+      .hero .top-actions .nav-separator {
+        display: none;
+      }
+      .hero .top-actions .nav-link {
+        flex: 0 0 auto;
+        line-height: 1.3;
+      }
       .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .stat-value { font-size: 23px; }
       .actions { width: 100%; }
       .actions > * { flex: 1 1 calc(50% - 8px); }
+      .hero .top-actions > * { flex: 0 0 auto; }
       .tabs {
         overflow-x: auto;
         flex-wrap: nowrap;
