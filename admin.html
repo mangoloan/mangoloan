@@ -430,6 +430,18 @@
       .grid-3, .borrower-grid { grid-template-columns: 1fr; }
     }
 
+    @media (max-width: 900px) and (orientation: landscape) {
+      .hero-main > div:first-child {
+        width: 100%;
+        flex: 0 0 100%;
+      }
+
+      .hero .top-actions {
+        width: 100%;
+        justify-content: flex-start;
+      }
+    }
+
     @media (max-width: 640px) {
       .container { padding: 14px; padding-bottom: 28px; }
       h1 { font-size: 28px; }
