@@ -51,55 +51,6 @@
       flex-wrap: wrap;
     }
 
-    .hero {
-      border: 0;
-      color: white;
-      background: linear-gradient(135deg, #78350f 0%, #f59e0b 58%, #16a34a 100%);
-      box-shadow: 0 18px 44px rgba(146,64,14,.22);
-    }
-
-    .hero .muted {
-      color: rgba(255,255,255,.78);
-    }
-
-    .hero-main {
-      width: 100%;
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 16px;
-      flex-wrap: wrap;
-    }
-
-    .hero-description {
-      width: 100%;
-      margin: 2px 0 0;
-      max-width: 680px;
-    }
-
-    .hero .nav-link {
-      color: white;
-      font-size: 14px;
-      font-weight: 700;
-      text-decoration: none;
-    }
-
-    .hero .nav-link:hover {
-      text-decoration: underline;
-    }
-
-    .hero button.nav-link,
-    .hero .file-label.nav-link {
-      background: transparent;
-      border: 0;
-      box-shadow: none;
-      padding: 0;
-      min-height: auto;
-      width: auto;
-      cursor: pointer;
-      font-family: inherit;
-    }
-
     h1 { margin: 0 0 6px; font-size: 32px; line-height: 1.1; letter-spacing: -0.03em; }
     h3 { margin: 0 0 14px; font-size: 20px; }
 
@@ -120,7 +71,6 @@
 
     .brand-heading { display:flex; align-items:center; gap:12px; }
     .brand-mark { width:140px; height:64px; border-radius:18px; background:#ffffff; border:1px solid #ffffff; display:grid; place-items:center; flex:0 0 auto; box-shadow:0 8px 20px rgba(245,158,11,.14); overflow:hidden; }
-    .hero .brand-mark { box-shadow:none; }
     .brand-mark img { width:126px; height:auto; display:block; }
 
     .actions {
@@ -171,17 +121,6 @@
       padding: 12px 10px;
       white-space: nowrap;
       font-weight: 500;
-    }
-
-    .hero .top-actions > button,
-    .hero .top-actions > .file-label {
-      width: auto;
-      min-height: auto;
-      padding: 0;
-      border: 0;
-      background: transparent;
-      color: white;
-      box-shadow: none;
     }
 
     .danger-link {
@@ -496,21 +435,18 @@
 
   <div id="appShell" class="hidden">
   <div class="container">
-    <div class="card hero topbar">
-      <div class="hero-main">
-        <div style="flex:1; min-width:220px;">
-          <div class="brand-heading"><span class="brand-mark" aria-hidden="true"><img src="assets/mango-loan-logo.jpg" alt="" /></span><h1>Admin Dashboard</h1></div>
-        </div>
-        <div class="actions top-actions">
-          <a href="index.html" class="nav-link">Home</a>
-          <a href="borrower.html" class="nav-link">Borrower portal</a>
-          <label class="file-label nav-link" for="importFile">Import Data</label>
-          <input id="importFile" type="file" accept="application/json" class="hidden" />
-          <button id="exportBtn" class="nav-link">Export Data</button>
-          <button type="button" id="signOutBtn" class="nav-link">Sign out</button>
-        </div>
+    <div class="topbar">
+      <div>
+        <div class="brand-heading"><span class="brand-mark" aria-hidden="true"><img src="assets/mango-loan-logo.jpg" alt="" /></span><h1>Micro Loan Tracker</h1></div>
       </div>
-      <p class="muted hero-description">Manage borrowers, loans, payments, and balances in one place.</p>
+      <div class="actions top-actions">
+        <a href="index.html" class="file-label" style="text-decoration:none;">Home</a>
+        <a href="borrower.html" class="file-label" style="text-decoration:none;">Borrower portal</a>
+        <label class="file-label" for="importFile">Import Data</label>
+        <input id="importFile" type="file" accept="application/json" class="hidden" />
+        <button id="exportBtn">Export Data</button>
+        <button type="button" id="signOutBtn">Sign out</button>
+      </div>
     </div>
 
     <div id="messageBox" class="message hidden"></div>
