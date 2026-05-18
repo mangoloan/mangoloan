@@ -730,15 +730,19 @@
     </div>
 
       <div class="card loan-entry-card" style="max-width:760px; margin-bottom:16px;">
-        <h3>Create Loan</h3>
-        <div id="addLoanPanel">
+        <button id="showAddLoanBtn" type="button" class="primary wide-add-button">Add Loan</button>
+        <div id="addLoanPanel" class="hidden">
+          <h3>Create Loan</h3>
           <div class="field"><label>Borrower</label><select id="loanBorrower"></select></div>
           <div class="field"><label>Principal</label><input id="loanPrincipal" type="number" step="0.01" /></div>
           <div class="field"><label>Interest Rate %</label><input id="loanRate" type="number" step="0.01" /></div>
           <div class="field loan-date-field"><label>Start Date</label><input id="loanStartDate" type="date" /></div>
           <div class="field loan-date-field"><label>Due Date</label><input id="loanDueDate" type="date" /></div>
           <div class="field"><label>Notes</label><textarea id="loanNotes"></textarea></div>
-          <div class="actions loan-form-actions"><button id="addLoanBtn" class="primary">Add Loan</button></div>
+          <div class="actions loan-form-actions">
+            <button id="addLoanBtn" type="button" class="primary">Add Loan</button>
+            <button id="cancelAddLoanBtn" type="button">Cancel</button>
+          </div>
         </div>
       </div>
 
@@ -788,40 +792,44 @@
 
     <section id="tab-payments" class="tab-panel">
     <div class="card payment-entry-card" style="margin-bottom:16px;">
-      <h3>Add Payment</h3>
+      <button id="showAddPaymentBtn" type="button" class="primary wide-add-button">Add Payment</button>
+      <div id="addPaymentPanel" class="hidden">
+        <h3>Add Payment</h3>
 
-      <div class="card" style="background:#fffaf0; margin:14px 0 16px; box-shadow:none;">
-        <h3 style="font-size:18px; margin-bottom:8px;">Optional: Paste Zelle Text</h3>
-        <div class="field">
-          <textarea id="zelleText" placeholder="BofA: John Smith sent you $500.00 for “loan”."></textarea>
+        <div class="card" style="background:#fffaf0; margin:14px 0 16px; box-shadow:none;">
+          <h3 style="font-size:18px; margin-bottom:8px;">Optional: Paste Zelle Text</h3>
+          <div class="field">
+            <textarea id="zelleText" placeholder="BofA: John Smith sent you $500.00 for “loan”."></textarea>
+          </div>
+          <div class="actions">
+            <button id="previewZelleBtn" type="button">Import</button>
+          </div>
+          <div id="zellePreview" class="zelle-preview hidden"></div>
         </div>
-        <div class="actions">
-          <button id="previewZelleBtn" type="button">Import</button>
-        </div>
-        <div id="zellePreview" class="zelle-preview hidden"></div>
-      </div>
 
-      <h3 style="font-size:18px; margin-bottom:12px;">Payment Details</h3>
-      <div class="grid-3">
-        <div class="field"><label>Loan</label><select id="paymentLoan"></select></div>
-        <div class="field"><label>Amount</label><input id="paymentAmount" type="number" step="0.01" /></div>
-        <div class="field payment-date-field"><label>Date</label><input id="paymentDate" type="date" /></div>
-      </div>
-      <div class="grid-3">
-        <div class="field"><label>Method</label>
-          <select id="paymentMethod">
-            <option>Zelle</option>
-            <option>Cash</option>
-            <option>Venmo</option>
-            <option>Bank Transfer</option>
-            <option>Other</option>
-          </select>
+        <h3 style="font-size:18px; margin-bottom:12px;">Payment Details</h3>
+        <div class="grid-3">
+          <div class="field"><label>Loan</label><select id="paymentLoan"></select></div>
+          <div class="field"><label>Amount</label><input id="paymentAmount" type="number" step="0.01" /></div>
+          <div class="field payment-date-field"><label>Date</label><input id="paymentDate" type="date" /></div>
         </div>
-        <div class="field payment-notes-field"><label>Notes</label><textarea id="paymentNotes"></textarea></div>
-      </div>
-      <div class="actions payment-form-actions">
-        <button id="addPaymentBtn" class="primary">Add Payment</button>
-        <button id="clearZelleBtn" type="button">Clear</button>
+        <div class="grid-3">
+          <div class="field"><label>Method</label>
+            <select id="paymentMethod">
+              <option>Zelle</option>
+              <option>Cash</option>
+              <option>Venmo</option>
+              <option>Bank Transfer</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div class="field payment-notes-field"><label>Notes</label><textarea id="paymentNotes"></textarea></div>
+        </div>
+        <div class="actions payment-form-actions">
+          <button id="addPaymentBtn" type="button" class="primary">Add Payment</button>
+          <button id="clearZelleBtn" type="button">Clear</button>
+          <button id="cancelAddPaymentBtn" type="button">Cancel</button>
+        </div>
       </div>
     </div>
 
@@ -2424,6 +2432,43 @@
       showMessage(addBorrowerMessage);
     });
 
+    function toggleAddLoanPanel(show = true) {
+      document.getElementById("addLoanPanel").classList.toggle("hidden", !show);
+      document.getElementById("showAddLoanBtn").classList.toggle("hidden", show);
+      if (show) document.getElementById("loanBorrower").focus();
+    }
+
+    function clearAddLoanForm() {
+      document.getElementById("loanBorrower").value = "";
+      document.getElementById("loanPrincipal").value = "";
+      document.getElementById("loanRate").value = "";
+      document.getElementById("loanStartDate").value = todayStr();
+      document.getElementById("loanDueDate").value = "";
+      document.getElementById("loanNotes").value = "";
+      toggleAddLoanPanel(false);
+    }
+
+    function toggleAddPaymentPanel(show = true) {
+      document.getElementById("addPaymentPanel").classList.toggle("hidden", !show);
+      document.getElementById("showAddPaymentBtn").classList.toggle("hidden", show);
+      if (show) document.getElementById("paymentLoan").focus();
+    }
+
+    function clearAddPaymentForm(closePanel = false) {
+      document.getElementById("paymentLoan").value = "";
+      document.getElementById("paymentAmount").value = "";
+      document.getElementById("paymentDate").value = todayStr();
+      document.getElementById("paymentMethod").value = "Zelle";
+      document.getElementById("paymentNotes").value = "";
+      clearZellePaste();
+      if (closePanel) toggleAddPaymentPanel(false);
+    }
+
+    document.getElementById("showAddLoanBtn").addEventListener("click", () => toggleAddLoanPanel(true));
+    document.getElementById("cancelAddLoanBtn").addEventListener("click", clearAddLoanForm);
+    document.getElementById("showAddPaymentBtn").addEventListener("click", () => toggleAddPaymentPanel(true));
+    document.getElementById("cancelAddPaymentBtn").addEventListener("click", () => clearAddPaymentForm(true));
+
     document.getElementById("addLoanBtn").addEventListener("click", async () => {
       const borrowerId = document.getElementById("loanBorrower").value;
       const principal = document.getElementById("loanPrincipal").value;
@@ -2467,12 +2512,7 @@
 
       console.log("Loan inserted:", data);
 
-      document.getElementById("loanBorrower").value = "";
-      document.getElementById("loanPrincipal").value = "";
-      document.getElementById("loanRate").value = "";
-      document.getElementById("loanStartDate").value = todayStr();
-      document.getElementById("loanDueDate").value = "";
-      document.getElementById("loanNotes").value = "";
+      clearAddLoanForm();
 
       await loadAllData();
       showMessage("Loan added.");
@@ -2515,15 +2555,10 @@
 
       const newPayment = data && data[0] ? data[0] : null;
 
-      document.getElementById("paymentLoan").value = "";
-      document.getElementById("paymentAmount").value = "";
-      document.getElementById("paymentDate").value = todayStr();
-      document.getElementById("paymentMethod").value = "Zelle";
-      document.getElementById("paymentNotes").value = "";
+      clearAddPaymentForm(true);
 
       await loadAllData();
       if (newPayment) showReceiptForPayment(newPayment.id);
-      clearZellePaste();
       showMessage("Payment added.");
     });
 
