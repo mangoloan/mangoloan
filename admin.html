@@ -635,39 +635,6 @@
       <div class="card"><div class="stat-label">Overdue</div><div class="stat-value" id="statOverdue">0</div></div>
     </div>
 
-    <div class="card" style="margin-bottom:16px;">
-      <h3>Zelle Quick Add</h3>
-      <div class="grid-3">
-        <div class="field" style="grid-column: span 2;">
-          <label>Paste Zelle Text</label>
-          <textarea id="zelleText" placeholder="BofA: John Smith sent you $500.00 for “loan”."></textarea>
-        </div>
-        <div>
-          <div class="field"><label>Loan</label><select id="paymentLoan"></select></div>
-          <div class="field"><label>Amount</label><input id="paymentAmount" type="number" step="0.01" /></div>
-        </div>
-      </div>
-      <div id="zellePreview" class="zelle-preview hidden"></div>
-      <div class="grid-3">
-        <div class="field"><label>Date</label><input id="paymentDate" type="date" /></div>
-        <div class="field"><label>Method</label>
-          <select id="paymentMethod">
-            <option>Zelle</option>
-            <option>Cash</option>
-            <option>Venmo</option>
-            <option>Bank Transfer</option>
-            <option>Other</option>
-          </select>
-        </div>
-        <div class="field"><label>Notes</label><textarea id="paymentNotes"></textarea></div>
-      </div>
-      <div class="actions">
-        <button id="previewZelleBtn" type="button">Preview Zelle</button>
-        <button id="addPaymentBtn" class="primary">Add Payment</button>
-        <button id="clearZelleBtn" type="button">Clear</button>
-      </div>
-    </div>
-
       <div class="card" style="max-width:760px; margin-bottom:16px;">
         <h3>Create Loan</h3>
         <div id="addLoanPanel">
@@ -724,6 +691,39 @@
     </section>
 
     <section id="tab-payments" class="tab-panel">
+    <div class="card" style="margin-bottom:16px;">
+      <h3>Zelle Quick Add</h3>
+      <div class="grid-3">
+        <div class="field" style="grid-column: span 2;">
+          <label>Paste Zelle Text</label>
+          <textarea id="zelleText" placeholder="BofA: John Smith sent you $500.00 for “loan”."></textarea>
+        </div>
+        <div>
+          <div class="field"><label>Loan</label><select id="paymentLoan"></select></div>
+          <div class="field"><label>Amount</label><input id="paymentAmount" type="number" step="0.01" /></div>
+        </div>
+      </div>
+      <div id="zellePreview" class="zelle-preview hidden"></div>
+      <div class="grid-3">
+        <div class="field"><label>Date</label><input id="paymentDate" type="date" /></div>
+        <div class="field"><label>Method</label>
+          <select id="paymentMethod">
+            <option>Zelle</option>
+            <option>Cash</option>
+            <option>Venmo</option>
+            <option>Bank Transfer</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="field"><label>Notes</label><textarea id="paymentNotes"></textarea></div>
+      </div>
+      <div class="actions">
+        <button id="previewZelleBtn" type="button">Preview Zelle</button>
+        <button id="addPaymentBtn" class="primary">Add Payment</button>
+        <button id="clearZelleBtn" type="button">Clear</button>
+      </div>
+    </div>
+
       <div class="card toolbar">
         <input id="paymentSearchInput" class="search" placeholder="Filter borrower, method, notes, or date" />
         <select id="paymentSortSelect" style="max-width:220px;">
