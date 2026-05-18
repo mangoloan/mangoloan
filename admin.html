@@ -217,8 +217,10 @@
       -webkit-appearance: none;
     }
 
-    .hero .top-actions > .nav-link:hover {
+    .hero .top-actions > .nav-link:hover,
+    .hero .top-actions > .nav-link.active {
       text-decoration: underline;
+      text-underline-offset: 4px;
     }
 
     .danger-link {
@@ -594,6 +596,12 @@
         <div class="actions top-actions">
           <a href="index.html" id="homeNavBtn" class="nav-link">Home</a>
           <span class="nav-separator" aria-hidden="true">|</span>
+          <a href="#" class="nav-link tab-btn active" data-tab="loans">Loans</a>
+          <span class="nav-separator" aria-hidden="true">|</span>
+          <a href="#" class="nav-link tab-btn" data-tab="borrowers">Borrowers</a>
+          <span class="nav-separator" aria-hidden="true">|</span>
+          <a href="#" class="nav-link tab-btn" data-tab="payments">Payments</a>
+          <span class="nav-separator" aria-hidden="true">|</span>
           <a href="#" id="importDataLink" class="nav-link">Import Data</a>
           <input id="importFile" type="file" accept="application/json" class="hidden" />
           <span class="nav-separator" aria-hidden="true">|</span>
@@ -660,9 +668,6 @@
     </div>
 
     <div class="tabs">
-      <button class="tab-btn active" data-tab="loans">Loans</button>
-      <button class="tab-btn" data-tab="borrowers">Borrowers</button>
-      <button class="tab-btn" data-tab="payments">Payments</button>
       <button class="tab-btn" data-tab="edit">Edit</button>
       <button class="tab-btn" data-tab="add">Add</button>
     </div>
@@ -2145,7 +2150,10 @@
     window.showReceiptForPayment = showReceiptForPayment;
 
     document.querySelectorAll(".tab-btn").forEach((btn) => {
-      btn.addEventListener("click", () => switchTab(btn.dataset.tab));
+      btn.addEventListener("click", (event) => {
+        event.preventDefault();
+        switchTab(btn.dataset.tab);
+      });
     });
 
     document.getElementById("searchInput").addEventListener("input", renderLoans);
