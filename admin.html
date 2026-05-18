@@ -626,11 +626,6 @@
       </div>
     </div>
 
-    <div class="tabs">
-      <button class="tab-btn" data-tab="edit">Edit</button>
-      <button class="tab-btn" data-tab="add">Add</button>
-    </div>
-
     <section id="tab-loans" class="tab-panel active">
     <div class="stats">
       <div class="card"><div class="stat-label">Total Loaned</div><div class="stat-value" id="statLoaned">$0.00</div></div>
@@ -673,6 +668,19 @@
       </div>
     </div>
 
+      <div class="card" style="max-width:760px; margin-bottom:16px;">
+        <h3>Create Loan</h3>
+        <div id="addLoanPanel">
+          <div class="field"><label>Borrower</label><select id="loanBorrower"></select></div>
+          <div class="field"><label>Principal</label><input id="loanPrincipal" type="number" step="0.01" /></div>
+          <div class="field"><label>Interest Rate %</label><input id="loanRate" type="number" step="0.01" /></div>
+          <div class="field"><label>Start Date</label><input id="loanStartDate" type="date" /></div>
+          <div class="field"><label>Due Date</label><input id="loanDueDate" type="date" /></div>
+          <div class="field"><label>Notes</label><textarea id="loanNotes"></textarea></div>
+          <button id="addLoanBtn" class="primary">Add Loan</button>
+        </div>
+      </div>
+
       <div class="card toolbar">
         <input id="searchInput" class="search" placeholder="Search borrower, phone, or Zelle" />
       </div>
@@ -706,6 +714,28 @@
           <p class="small muted" style="margin-top:-4px;">If an email is entered, Add Borrower will also create and link a borrower portal login.</p>
           <p id="addBorrowerResult" class="small muted hidden"></p>
           <button id="addBorrowerBtn" class="primary">Add Borrower</button>
+        </div>
+      </div>
+
+      <div class="card" style="max-width:760px; margin-bottom:16px;">
+        <h3>Edit Borrower / Portal Login</h3>
+        <p class="small muted" style="margin-top:-6px;">Select a borrower here to create a borrower UID/login, find and link an existing user, or set a temporary password.</p>
+        <div id="editBorrowerPanel">
+          <div class="field"><label>Select Borrower</label><select id="editBorrowerSelect"></select></div>
+          <div class="field"><label>Name</label><input id="editBorrowerName" /></div>
+          <div class="field"><label>Email</label><input id="editBorrowerEmail" /></div>
+          <div class="field"><label>Borrower Portal User ID</label><input id="editBorrowerAuthUserId" placeholder="Supabase Auth user UUID" /></div>
+          <p class="small muted" style="margin-top:-8px;">Use Create Portal User to create and link a Supabase Auth login automatically. Paste a UUID here only when linking an existing user.</p>
+          <div class="row-actions" style="margin-bottom:8px;">
+            <button id="createBorrowerPortalUserBtn" type="button">Create Portal User</button>
+            <button id="linkBorrowerPortalUserBtn" type="button">Find & Link Existing User</button>
+            <button id="setBorrowerPortalPasswordBtn" type="button">Set Temporary Password</button>
+          </div>
+          <p id="borrowerPortalUserResult" class="small muted hidden"></p>
+          <div class="field"><label>Phone</label><input id="editBorrowerPhone" /></div>
+          <div class="field"><label>Zelle</label><input id="editBorrowerZelle" /></div>
+          <div class="field"><label>Notes</label><textarea id="editBorrowerNotes"></textarea></div>
+          <button id="saveBorrowerEditBtn" class="primary">Save Borrower</button>
         </div>
       </div>
 
@@ -747,31 +777,12 @@
         <h3>Edit Record</h3>
         <div class="field"><label>What do you want to edit?</label>
           <select id="editTypeSelect">
-            <option value="borrower">Borrower</option>
             <option value="loan">Loan</option>
             <option value="payment">Payment</option>
           </select>
         </div>
 
-        <div id="editBorrowerPanel">
-          <div class="field"><label>Select Borrower</label><select id="editBorrowerSelect"></select></div>
-          <div class="field"><label>Name</label><input id="editBorrowerName" /></div>
-          <div class="field"><label>Email</label><input id="editBorrowerEmail" /></div>
-          <div class="field"><label>Borrower Portal User ID</label><input id="editBorrowerAuthUserId" placeholder="Supabase Auth user UUID" /></div>
-          <p class="small muted" style="margin-top:-8px;">Use Create Portal User to create and link a Supabase Auth login automatically. Paste a UUID here only when linking an existing user.</p>
-          <div class="row-actions" style="margin-bottom:8px;">
-            <button id="createBorrowerPortalUserBtn" type="button">Create Portal User</button>
-            <button id="linkBorrowerPortalUserBtn" type="button">Find & Link Existing User</button>
-            <button id="setBorrowerPortalPasswordBtn" type="button">Set Temporary Password</button>
-          </div>
-          <p id="borrowerPortalUserResult" class="small muted hidden"></p>
-          <div class="field"><label>Phone</label><input id="editBorrowerPhone" /></div>
-          <div class="field"><label>Zelle</label><input id="editBorrowerZelle" /></div>
-          <div class="field"><label>Notes</label><textarea id="editBorrowerNotes"></textarea></div>
-          <button id="saveBorrowerEditBtn" class="primary">Save Borrower</button>
-        </div>
-
-        <div id="editLoanPanel" class="hidden">
+        <div id="editLoanPanel">
           <div class="field"><label>Select Loan</label><select id="editLoanSelect"></select></div>
           <div class="field"><label>Borrower</label><select id="editLoanBorrower"></select></div>
           <div class="field"><label>Principal</label><input id="editLoanPrincipal" type="number" step="0.01" /></div>
@@ -798,22 +809,6 @@
           </div>
           <div class="field"><label>Notes</label><textarea id="editPaymentNotes"></textarea></div>
           <button id="savePaymentEditBtn" class="primary">Save Payment</button>
-        </div>
-      </div>
-    </section>
-
-    <section id="tab-add" class="tab-panel">
-      <div class="card" style="max-width:760px;">
-        <h3>Add Loan</h3>
-
-        <div id="addLoanPanel">
-          <div class="field"><label>Borrower</label><select id="loanBorrower"></select></div>
-          <div class="field"><label>Principal</label><input id="loanPrincipal" type="number" step="0.01" /></div>
-          <div class="field"><label>Interest Rate %</label><input id="loanRate" type="number" step="0.01" /></div>
-          <div class="field"><label>Start Date</label><input id="loanStartDate" type="date" /></div>
-          <div class="field"><label>Due Date</label><input id="loanDueDate" type="date" /></div>
-          <div class="field"><label>Notes</label><textarea id="loanNotes"></textarea></div>
-          <button id="addLoanBtn" class="primary">Add Loan</button>
         </div>
       </div>
     </section>
@@ -2078,12 +2073,11 @@
 
     function setEditType(type) {
       document.getElementById("editTypeSelect").value = type;
-      document.getElementById("editBorrowerPanel").classList.toggle("hidden", type !== "borrower");
       document.getElementById("editLoanPanel").classList.toggle("hidden", type !== "loan");
       document.getElementById("editPaymentPanel").classList.toggle("hidden", type !== "payment");
     }
 
-    function editBorrower(id) { setEditType("borrower"); loadBorrowerIntoEditor(id); switchTab("edit"); }
+    function editBorrower(id) { loadBorrowerIntoEditor(id); switchTab("borrowers"); }
     function editLoan(id) { setEditType("loan"); loadLoanIntoEditor(id); switchTab("edit"); }
     function editPayment(id) { setEditType("payment"); loadPaymentIntoEditor(id); switchTab("edit"); }
 
