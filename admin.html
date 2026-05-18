@@ -693,16 +693,14 @@
     <section id="tab-payments" class="tab-panel">
     <div class="card" style="margin-bottom:16px;">
       <h3>Add Payment</h3>
-      <p class="muted" style="margin-top:-8px;">Enter a payment manually, or paste a Zelle message first to fill the details faster.</p>
 
       <div class="card" style="background:#fffaf0; margin:14px 0 16px; box-shadow:none;">
         <h3 style="font-size:18px; margin-bottom:8px;">Optional: Paste Zelle Text</h3>
         <div class="field">
-          <label>Paste bank/Zelle message</label>
           <textarea id="zelleText" placeholder="BofA: John Smith sent you $500.00 for “loan”."></textarea>
         </div>
         <div class="actions">
-          <button id="previewZelleBtn" type="button">Parse Zelle Text</button>
+          <button id="previewZelleBtn" type="button">Process</button>
         </div>
         <div id="zellePreview" class="zelle-preview hidden"></div>
       </div>
