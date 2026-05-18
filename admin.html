@@ -449,9 +449,18 @@
       color: #991b1b;
     }
 
+    .payment-notes-field {
+      grid-column: span 2;
+    }
+
+    .payment-form-actions button {
+      min-width: 140px;
+    }
+
     @media (max-width: 1024px) {
       .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .grid-3, .borrower-grid { grid-template-columns: 1fr; }
+      .payment-notes-field { grid-column: auto; }
     }
 
     @media (max-width: 900px) and (orientation: landscape) {
@@ -691,7 +700,7 @@
     </section>
 
     <section id="tab-payments" class="tab-panel">
-    <div class="card" style="margin-bottom:16px;">
+    <div class="card payment-entry-card" style="margin-bottom:16px;">
       <h3>Add Payment</h3>
 
       <div class="card" style="background:#fffaf0; margin:14px 0 16px; box-shadow:none;">
@@ -721,9 +730,9 @@
             <option>Other</option>
           </select>
         </div>
-        <div class="field" style="grid-column: span 2;"><label>Notes</label><textarea id="paymentNotes"></textarea></div>
+        <div class="field payment-notes-field"><label>Notes</label><textarea id="paymentNotes"></textarea></div>
       </div>
-      <div class="actions">
+      <div class="actions payment-form-actions">
         <button id="addPaymentBtn" class="primary">Add Payment</button>
         <button id="clearZelleBtn" type="button">Clear</button>
       </div>
